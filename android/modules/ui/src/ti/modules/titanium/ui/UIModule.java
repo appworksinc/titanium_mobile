@@ -17,6 +17,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Window;
+import android.widget.Toast;
 
 public class UIModule extends TiModule
 {
@@ -94,6 +95,9 @@ public class UIModule extends TiModule
 			constants.put("FACE_UP", FACE_UP);
 			constants.put("FACE_DOWN", FACE_DOWN);
 			constants.put("UNKNOWN", UNKNOWN);
+			
+			constants.put("NOTIFICATION_DURATION_LONG", Toast.LENGTH_LONG);
+			constants.put("NOTIFICATION_DURATION_SHORT", Toast.LENGTH_SHORT);
 		}
 
 		return constants;

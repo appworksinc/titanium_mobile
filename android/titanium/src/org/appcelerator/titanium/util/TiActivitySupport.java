@@ -9,6 +9,7 @@ package org.appcelerator.titanium.util;
 import org.appcelerator.titanium.ITiMenuDispatcherListener;
 
 import android.content.Intent;
+import android.view.View;
 
 public interface TiActivitySupport
 {

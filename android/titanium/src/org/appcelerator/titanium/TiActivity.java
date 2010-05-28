@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -298,18 +299,6 @@ public class TiActivity extends Activity
 		}
 	}
 
-//	@Override
-//	public boolean onKey(View v, int keyCode, KeyEvent event) {
-////		if (softMenuDispatcher != null) {
-////			ITiMenuDispatcherListener dispatcher = softMenuDispatcher.get();
-////			if (dispatcher != null) {
-////				return dispatcher.dispatchMenuItemSelected(item);
-////			}
-////		}
-////		return super.onKey();
-//		Log.w(LCAT, "onKey Keycode: "+keyCode);
-//		super.onKey(v, keyCode, event);
-//	}
 	
 	@Override
 	public void finish()
