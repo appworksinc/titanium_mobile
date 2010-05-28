@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="android/modules/accelerometer/src"/>
+	<classpathentry kind="src" path="android/modules/analytics/src"/>
+	<classpathentry kind="src" path="android/modules/api/src"/>
+	<classpathentry kind="src" path="android/modules/app/src"/>
+	<classpathentry kind="src" path="android/modules/database/src"/>
+	<classpathentry kind="src" path="android/modules/filesystem/src"/>
+	<classpathentry kind="src" path="android/modules/geolocation/src"/>
+	<classpathentry kind="src" path="android/modules/gesture/src"/>
+	<classpathentry kind="src" path="android/modules/json/src"/>
+	<classpathentry kind="src" path="android/modules/map/src"/>
+	<classpathentry kind="src" path="android/modules/media/src"/>
+	<classpathentry kind="src" path="android/modules/network/src"/>
+	<classpathentry kind="src" path="android/modules/platform/src"/>
+	<classpathentry kind="src" path="android/modules/ui/src"/>
+	<classpathentry kind="src" path="android/modules/utils/src"/>
+	<classpathentry kind="src" path="android/modules/xml/src"/>
+	<classpathentry kind="src" path="android/modules/yahoo/src"/>
+	<classpathentry kind="src" path="android/titanium/src"/>
+	<classpathentry kind="src" path="android/titanium/thirdparty"/>
+	<classpathentry kind="src" path="demos/ApiCheck/build/android/src"/>
+	<classpathentry excluding="Activity.java|AndroidManifest.xml|App.java|AppInfo.java|AppUserData.java|classpath|default.properties|gitignore|project" kind="src" path="support/android/templates"/>
+	<classpathentry kind="lib" path="android/build/lib/ant-launcher.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/ant-nodeps.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/ant.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/xercesImpl.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/xml-apis.jar"/>
+	<classpathentry kind="lib" path="android/modules/xml/lib/jaxen-1.1.1.jar"/>
+	<classpathentry kind="lib" path="android/titanium/lib/commons-codec-1.3.jar"/>
+	<classpathentry kind="lib" path="android/titanium/lib/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="android/titanium/lib/js.jar"/>
+	<classpathentry kind="lib" path="android/titanium/lib/smalljs.jar"/>
+	<classpathentry kind="lib" path="demos/ApiCheck/build/android/lib/titanium.jar"/>
+	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/platforms/android-8/android.jar"/>
+	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/add-ons/google_apis-8_r01/libs/maps.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

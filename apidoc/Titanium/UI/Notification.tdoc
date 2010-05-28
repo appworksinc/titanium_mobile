@@ -1,0 +1,50 @@
+- namespace
+
+Titanium.UI.Notification
+
+- type
+
+object
+
+- subtype
+
+view
+
+- description
+
+A Notification is created by the method `Titanium.UI.createNotification`.
+
+- since
+
+1.3.1
+
+- platforms
+
+android
+
+- properties
+
+message[string]: string message for the notification
+horizontalMargin[float]: float indicating the horizontal margin
+verticalMargin[float]: float indicating the vertical margin
+offsetX[int]: int offset in pixels to apply to the X
+offsetY[int]: int offset in pixels to apply to the Y
+
+- methods
+
+- events
+
+- example : Simple Switch Example
+
+The following is a simple example of a using a notification.
+
+~~~
+var notification = Ti.UI.createNotification({message:"Wotcha!", duration:Ti.UI.NOTIFICATION_DURATION_LONG});
+notification.show();
+
+~~~
+
+- notes
+
+
+
