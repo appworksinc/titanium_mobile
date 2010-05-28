@@ -8,6 +8,7 @@
 package ti.modules.titanium.map;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -189,17 +190,29 @@ public class TiMapView extends TiUIView
 					boundCenterBottom(marker);
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
-					switch(a.getInt("pincolor")) {
-						case 1 : // RED
-							item.setMarker(makeMarker(Color.RED));
-							break;
-						case 2 : // GREEN
-							item.setMarker(makeMarker(Color.GREEN));
-							break;
-						case 3 : // PURPLE
-							item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-							break;
-					}
+					
+					String classType = a.get("pincolor").getClass().getSimpleName().toLowerCase();
+					
+					if (classType.equals("string")) {
+						try {
+							int markerColor = Color.parseColor(a.getString("pincolor"));
+							item.setMarker(makeMarker(markerColor));							
+						} catch (Exception e) {
+							Log.w(LCAT, "Unable to parse color: " + a.getString("pincolor"));							
+						}
+					} else {
+						switch(a.getInt("pincolor")) {
+							case 1 : // RED
+								item.setMarker(makeMarker(Color.RED));
+								break;
+							case 2 : // GRE
+								item.setMarker(makeMarker(Color.GREEN));
+								break;
+							case 3 : // PURPLE
+								item.setMarker(makeMarker(Color.argb(255,192,0,192)));
+								break;
+						}						
+					}										
 				}
 
 				if (a.containsKey("leftButton")) {
