@@ -86,6 +86,8 @@ public class TiMapView extends TiUIView
 	private boolean regionFit;
 	private boolean animate;
 	private boolean userLocation;
+	private boolean enableShadow = true;
+	private int userLocationPinColor = Color.RED;
 
 	private LocalMapView view;
 	private Window mapWindow;
@@ -168,7 +170,20 @@ public class TiMapView extends TiUIView
 
 			populate();
 		}
+		
+		public void setShadow(boolean v) {
+			enableShadow = v;
+		}
+		
+		public boolean getShadow() {
+			return enableShadow;
+		}
 
+		@Override
+		public void draw(android.graphics.Canvas canvas, MapView mapView, boolean shadow) {
+			super.draw(canvas, mapView, false);
+		}
+		
 		@Override
 		protected TiOverlayItem createItem(int i) {
 			TiOverlayItem item = null;
@@ -189,30 +204,8 @@ public class TiMapView extends TiUIView
 					Drawable marker = makeMarker(imagePath);
 					boundCenterBottom(marker);
 					item.setMarker(marker);
-				} else if (a.containsKey("pincolor")) {
-					
-					String classType = a.get("pincolor").getClass().getSimpleName().toLowerCase();
-					
-					if (classType.equals("string")) {
-						try {
-							int markerColor = Color.parseColor(a.getString("pincolor"));
-							item.setMarker(makeMarker(markerColor));							
-						} catch (Exception e) {
-							Log.w(LCAT, "Unable to parse color: " + a.getString("pincolor"));							
-						}
-					} else {
-						switch(a.getInt("pincolor")) {
-							case 1 : // RED
-								item.setMarker(makeMarker(Color.RED));
-								break;
-							case 2 : // GRE
-								item.setMarker(makeMarker(Color.GREEN));
-								break;
-							case 3 : // PURPLE
-								item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-								break;
-						}						
-					}										
+				} else if (a.containsKey("pincolor")) {					
+					item.setMarker(makeMarker(toColor(a.get("pincolor"))));
 				}
 
 				if (a.containsKey("leftButton")) {
@@ -453,6 +446,9 @@ public class TiMapView extends TiUIView
 		if (d.containsKey("userLocation")) {
 			doUserLocation(d.getBoolean("userLocation"));
 		}
+		if (d.containsKey("userLocationPinColor")) {
+			userLocationPinColor = toColor(d.get("userLocationPinColor"));
+		}
 		if (d.containsKey("annotations")) {
 			proxy.internalSetDynamicValue("annotations", d.get("annotations"), false);
 			Object [] annotations = (Object[]) d.get("annotations");
@@ -550,7 +546,7 @@ public class TiMapView extends TiUIView
 				}
 
 				if (annotations.size() > 0) {
-					overlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
+					overlay = new TitaniumOverlay(makeMarker(userLocationPinColor), this);
 					overlay.setAnnotations(annotations);
 					overlays.add(overlay);
 				}
@@ -692,6 +688,33 @@ public class TiMapView extends TiUIView
 		handler.obtainMessage(MSG_CHANGE_ZOOM, delta, 0).sendToTarget();
 	}
 
+	private int toColor(Object c) {
+		String classType = c.getClass().getSimpleName().toLowerCase();
+		
+		if (classType.equals("string")) {
+			try {
+				return Color.parseColor(TiConvert.toString(c));
+			} catch (Exception e) {
+				Log.w(LCAT, "Unable to parse color: " + TiConvert.toString(c));	
+				return 0;
+			}
+		} else {
+			// Assume it's an int
+			int pinColor = TiConvert.toInt(c);
+			switch(pinColor) {
+				case 1 : // RED
+					return Color.RED;
+				case 2 : // GRE
+					return Color.GREEN;
+				case 3 : // PURPLE
+					return Color.argb(255,192,0,192);
+				default:
+					// TODO - Default?
+					return 0;
+			}						
+		}
+	}
+	
 	private Drawable makeMarker(int c)
 	{
 		OvalShape s = new OvalShape();
