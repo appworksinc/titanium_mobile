@@ -191,28 +191,32 @@ public class TiMapView extends TiUIView
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
 					
-					String classType = a.get("pincolor").getClass().getSimpleName().toLowerCase();
+					Object value = a.get("pincolor");
 					
-					if (classType.equals("string")) {
-						try {
-							int markerColor = Color.parseColor(a.getString("pincolor"));
+					try {
+						if (value instanceof String) {
+							// Supported strings: Supported formats are: 
+							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
+							int markerColor = TiConvert.toColor((String) value);
 							item.setMarker(makeMarker(markerColor));							
-						} catch (Exception e) {
-							Log.w(LCAT, "Unable to parse color: " + a.getString("pincolor"));							
-						}
-					} else {
-						switch(a.getInt("pincolor")) {
-							case 1 : // RED
-								item.setMarker(makeMarker(Color.RED));
-								break;
-							case 2 : // GRE
-								item.setMarker(makeMarker(Color.GREEN));
-								break;
-							case 3 : // PURPLE
-								item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-								break;
-						}						
-					}										
+						} else {
+							// Assume it's a numeric
+							switch(a.getInt("pincolor")) {
+								case 1 : // RED
+									item.setMarker(makeMarker(Color.RED));
+									break;
+								case 2 : // GRE
+									item.setMarker(makeMarker(Color.GREEN));
+									break;
+								case 3 : // PURPLE
+									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
+									break;
+							}						
+						}										
+					} catch (Exception e) {
+						// May as well catch all errors 
+						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
+					}
 				}
 
 				if (a.containsKey("leftButton")) {
