@@ -209,8 +209,38 @@ public class TiMapView extends TiUIView
 					boundCenterBottom(marker);
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
+<<<<<<< HEAD
 					// Pushed the conversion to it's own function to allow reuse
 					item.setMarker(makeMarker(toColor(a.get("pincolor"))));					
+=======
+					Object value = a.get("pincolor");
+					
+					try {
+						if (value instanceof String) {
+							
+							// Supported strings: Supported formats are: 
+							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
+							int markerColor = TiConvert.toColor((String) value);
+							item.setMarker(makeMarker(markerColor));							
+						} else {
+							// Assume it's a numeric
+							switch(a.getInt("pincolor")) {
+								case 1 : // RED
+									item.setMarker(makeMarker(Color.RED));
+									break;
+								case 2 : // GRE
+									item.setMarker(makeMarker(Color.GREEN));
+									break;
+								case 3 : // PURPLE
+									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
+									break;
+							}						
+						}										
+					} catch (Exception e) {
+						// May as well catch all errors 
+						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
+					}
+>>>>>>> 4ae1da88a372ff1e34cd1bbb8a50bd7e30680b93
 				}
 
 				if (a.containsKey("leftButton")) {

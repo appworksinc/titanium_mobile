@@ -207,7 +207,14 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 					String[] left = null;
 					if (baseUrl.contains("://")) {
 						String[] tmp = baseUrl.split("://");
-						left = tmp[1].split("/");
+						if (tmp.length > 1)
+						{
+							left = tmp[1].split("/");
+						}
+						else
+						{
+							left = new String[] {};
+						}
 					} else {
 						left = baseUrl.split("/");
 					}
@@ -245,6 +252,11 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 
 	public String resolveUrl(String scheme, String path)
 	{
+		return resolveUrl(scheme, path, getBaseUrl());
+	}
+	
+	public String resolveUrl(String scheme, String path, String relativeTo)
+	{
 		if (!TiFileFactory.isLocalScheme(path)) {
 			return path;
 		}
@@ -261,7 +273,7 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 		Uri uri = Uri.parse(path);
 		if (uri.getScheme() == null) {
 			if (!path.startsWith("/")) {
-				result = baseUrl + path;
+				result = relativeTo + path;
 			} else {
 				result = scheme + "/" + path;
 			}

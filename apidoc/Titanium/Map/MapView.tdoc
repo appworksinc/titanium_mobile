@@ -25,8 +25,8 @@ android, iphone, ipad
 - methods
 
 zoom: zoom in or out of the map
-selectAnnotation: cause the annotation to be selected (shown)
-deselectAnnotation: cause the annotation to be deselected (hidden)
+selectAnnotation: cause the annotation to be selected (shown).
+deselectAnnotation: cause the annotation to be deselected (hidden).
 addAnnotation: add a new annotation to the map
 addAnnotations: add one or more new annotation to the map
 removeAnnotation: remove an existing annotation from the map
@@ -101,5 +101,5 @@ map: the map view instance
 
 - notes
 
-For Android, you will need to <a href="http://code.google.com/android/maps-api-signup.html">obtain a map key from Google</a> to use maps in your application.
+For Android, you will need to <a href="http://code.google.com/android/maps-api-signup.html">obtain a map key from Google</a> to use maps in your application.  On iPhone, you cannot call any methods on a map view until it has been added to a view.
 

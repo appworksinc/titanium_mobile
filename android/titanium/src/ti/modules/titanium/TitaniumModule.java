@@ -7,10 +7,9 @@
 package ti.modules.titanium;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Properties;
+import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -18,7 +17,6 @@ import org.appcelerator.titanium.TiContext;
 import org.appcelerator.titanium.TiDict;
 import org.appcelerator.titanium.TiModule;
 import org.appcelerator.titanium.kroll.KrollCallback;
-import org.appcelerator.titanium.kroll.KrollContext;
 import org.appcelerator.titanium.util.Log;
 import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.util.TiUIHelper;
@@ -28,49 +26,46 @@ public class TitaniumModule
 {
 	private static final String LCAT = "TitaniumModule";
 	private static TiDict constants;
-	private static String buildVersion;
-	private static String buildTimestamp;
-
-	static {
-		buildVersion = "1.0";
-		buildTimestamp = "N/A";
-		InputStream versionStream = TitaniumModule.class.getClassLoader().getResourceAsStream("org/appcelerator/titanium/build.properties");
-		if (versionStream != null) {
-			Properties properties = new Properties();
-			try {
-				properties.load(versionStream);
-				if (properties.containsKey("build.version")) {
-					buildVersion = properties.getProperty("build.version");
-				}
-				if (properties.containsKey("build.timestamp")) {
-					buildTimestamp = properties.getProperty("build.timestamp");
-				}
-			} catch (IOException e) {}
-		}
-	}
+	private Stack<String> basePath;
 
 	public TitaniumModule(TiContext tiContext) {
 		super(tiContext);
+		basePath = new Stack<String>();
+		basePath.push(tiContext.getBaseUrl());
+		
 		tiContext.addOnLifecycleEventListener(this);
 	}
-
+	
 	@Override
 	public TiDict getConstants()
 	{
 		if (constants == null) {
 			constants = new TiDict();
 
-			constants.put("version", buildVersion);
-			constants.put("buildTimestamp", buildTimestamp);
+			constants.put("version", getTiContext().getTiApp().getTiBuildVersion());
+			constants.put("buildTimestamp", getTiContext().getTiApp().getTiBuildTimestamp());
 		}
 
 		return constants;
 	}
 
-	public void include(Object[] files) {
+	public void include(TiContext tiContext, Object[] files) {
 		for(Object filename : files) {
 			try {
-				getTiContext().evalFile(getTiContext().resolveUrl(null, TiConvert.toString(filename)));
+				// we need to make sure paths included from sub-js files are actually relative
+				boolean popContext = false;
+				if (!basePath.contains(tiContext.getBaseUrl())) {
+					basePath.push(tiContext.getBaseUrl());
+					popContext = true;
+				}
+				String resolved = tiContext.resolveUrl(null, TiConvert.toString(filename), basePath.peek());
+				basePath.push(resolved.substring(0, resolved.lastIndexOf('/')+1));
+				tiContext.evalFile(resolved);
+				basePath.pop();
+				
+				if (popContext) {
+					basePath.pop();
+				}
 			} catch (IOException e) {
 				Log.e(LCAT, "Error while evaluating: " + filename, e);
 			}

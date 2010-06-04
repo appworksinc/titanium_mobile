@@ -15,7 +15,7 @@ var mountainView = Titanium.Map.createAnnotation({
 	longitude:-122.081651,
 	title:"Appcelerator Headquarters",
 	subtitle:'Mountain View, CA',
-	pincolor:Titanium.Map.ANNOTATION_RED,
+	pincolor: isAndroid ? "orange" : Titanium.Map.ANNOTATION_RED,
 	animate:true,
 	leftButton: '../images/appcelerator_small.png',
 	myid:1 // CUSTOM ATTRIBUTE THAT IS PASSED INTO EVENT OBJECTS
@@ -51,24 +51,26 @@ if (!isAndroid) {
 var atlanta = Titanium.Map.createAnnotation(atlantaParams);
 
 //
-// CREATE MAP VIEW
-//
-var mapview = Titanium.Map.createView({
-	mapType: Titanium.Map.STANDARD_TYPE,
-	region: {latitude:33.74511, longitude:-84.38993, latitudeDelta:0.5, longitudeDelta:0.5},
-	animate:true,
-	regionFit:true,
-	userLocation:true,
-	annotations:[apple, atlanta]
-});
-
-win.add(mapview);
-
-//
 // PRE-DEFINED REGIONS
 //
 var regionAtlanta = {latitude:33.74511,longitude:-84.38993,animate:true,latitudeDelta:0.04, longitudeDelta:0.04};
 var regionSV = {latitude:37.337681,longitude:-122.038193,animate:true,latitudeDelta:0.04, longitudeDelta:0.04};
+
+//
+// CREATE MAP VIEW
+//
+var mapview = Titanium.Map.createView({
+	mapType: Titanium.Map.STANDARD_TYPE,
+	region:{latitude:33.74511, longitude:-84.38993, latitudeDelta:0.5, longitudeDelta:0.5},
+	animate:true,
+	regionFit:true,
+	userLocation:true,
+	annotations:[apple]
+});
+
+mapview.addAnnotation(atlanta);
+mapview.selectAnnotation(atlanta);
+win.add(mapview);
 
 //
 // NAVBAR BUTTONS

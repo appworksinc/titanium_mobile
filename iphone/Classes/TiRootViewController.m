@@ -111,7 +111,7 @@
 		return;
 	}
 
-	if ((newOrientation==windowOrientation)&&(lastOrientation!=newOrientation))
+	if ((newOrientation==windowOrientation)&&(lastOrientation!=newOrientation) && [self shouldAutorotateToInterfaceOrientation:newOrientation])
 	{ //This is for when we've forced an orientation that was not what the device was, and
 	//Now we want to return to it. Because newOrientation and windowOrientation are identical
 	//The iPhone OS wouldn't send this method.
@@ -153,6 +153,17 @@
 {
 	[self.view resignFirstResponder];
     [super viewDidDisappear:animated];
+}
+
+-(void)repositionSubviews
+{
+	for (UIView * subView in [[self view] subviews])
+	{
+		if ([subView respondsToSelector:@selector(proxy)])
+		{
+			[(TiViewProxy *)[(TiUIView *)subView proxy] reposition];
+		}
+	}
 }
 
 -(void)manuallyRotateToOrientation:(UIInterfaceOrientation)newOrientation duration:(NSTimeInterval)duration
@@ -213,14 +224,8 @@
 	[self resizeView];
 
 	//Propigate this to everyone else. This has to be done INSIDE the animation.
-	for (UIView * subView in [[self view] subviews])
-	{
-		if ([subView respondsToSelector:@selector(proxy)])
-		{
-			[(TiViewProxy *)[(TiUIView *)subView proxy] reposition];
-		}
-	}
-
+	[self repositionSubviews];
+	
 	if (duration > 0.0)
 	{
 		[UIView commitAnimations];
