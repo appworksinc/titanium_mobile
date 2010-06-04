@@ -223,12 +223,9 @@ public class TiMapView extends TiUIView
 					boundCenterBottom(marker);
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
-<<<<<<< HEAD
 					// Pushed the conversion to it's own function to allow reuse
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+
 					item.setMarker(makeMarker(toColor(a.get("pincolor"))));					
-=======
 					Object value = a.get("pincolor");
 					
 					try {
@@ -256,18 +253,10 @@ public class TiMapView extends TiUIView
 						// May as well catch all errors 
 						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
 					}
->>>>>>> 4ae1da88a372ff1e34cd1bbb8a50bd7e30680b93
-=======
-=======
->>>>>>> Stashed changes
 					//item.setMarker(makeMarker(toColor(a.get("pincolor"))));
 					Drawable marker = makeMarker(10,10, location);
 					//boundCenterBottom(marker);
 					item.setMarker(marker);
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 				}
 
 				if (a.containsKey("leftButton")) {
