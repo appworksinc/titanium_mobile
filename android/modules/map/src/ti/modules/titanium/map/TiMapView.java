@@ -10,6 +10,9 @@ package ti.modules.titanium.map;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import org.appcelerator.titanium.TiApplication;
@@ -27,11 +30,20 @@ import org.appcelerator.titanium.util.TiUIHelper;
 import org.appcelerator.titanium.view.TiUIView;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Point;
+import android.graphics.RectF;
+import android.graphics.Paint.Style;
+import android.graphics.Path.FillType;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
+import android.graphics.drawable.shapes.PathShape;
+import android.graphics.drawable.shapes.Shape;
 import android.os.Handler;
 import android.os.Message;
 import android.view.MotionEvent;
@@ -86,6 +98,9 @@ public class TiMapView extends TiUIView
 	private boolean regionFit;
 	private boolean animate;
 	private boolean userLocation;
+//  Precursor to enabling selective shadows & userLocation icon
+//	private boolean enableShadow = true;
+//	private int userLocationPinColor = Color.RED;
 
 	private LocalMapView view;
 	private Window mapWindow;
@@ -168,7 +183,25 @@ public class TiMapView extends TiUIView
 
 			populate();
 		}
+		
+//      Precursor to disabling shadow
+//		
+//		
+//		public void setShadow(boolean v) {
+//			enableShadow = v;
+//		}
+//		
+//		public boolean getShadow() {
+//			return enableShadow;
+//		}
 
+		@Override
+		public void draw(android.graphics.Canvas canvas, MapView mapView, boolean shadow) {
+			if (shadow == false) {
+				super.draw(canvas, mapView, false);
+			}
+		}
+		
 		@Override
 		protected TiOverlayItem createItem(int i) {
 			TiOverlayItem item = null;
@@ -190,29 +223,51 @@ public class TiMapView extends TiUIView
 					boundCenterBottom(marker);
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
+<<<<<<< HEAD
+					// Pushed the conversion to it's own function to allow reuse
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+					item.setMarker(makeMarker(toColor(a.get("pincolor"))));					
+=======
+					Object value = a.get("pincolor");
 					
-					String classType = a.get("pincolor").getClass().getSimpleName().toLowerCase();
-					
-					if (classType.equals("string")) {
-						try {
-							int markerColor = Color.parseColor(a.getString("pincolor"));
+					try {
+						if (value instanceof String) {
+							
+							// Supported strings: Supported formats are: 
+							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
+							int markerColor = TiConvert.toColor((String) value);
 							item.setMarker(makeMarker(markerColor));							
-						} catch (Exception e) {
-							Log.w(LCAT, "Unable to parse color: " + a.getString("pincolor"));							
-						}
-					} else {
-						switch(a.getInt("pincolor")) {
-							case 1 : // RED
-								item.setMarker(makeMarker(Color.RED));
-								break;
-							case 2 : // GRE
-								item.setMarker(makeMarker(Color.GREEN));
-								break;
-							case 3 : // PURPLE
-								item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-								break;
-						}						
-					}										
+						} else {
+							// Assume it's a numeric
+							switch(a.getInt("pincolor")) {
+								case 1 : // RED
+									item.setMarker(makeMarker(Color.RED));
+									break;
+								case 2 : // GRE
+									item.setMarker(makeMarker(Color.GREEN));
+									break;
+								case 3 : // PURPLE
+									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
+									break;
+							}						
+						}										
+					} catch (Exception e) {
+						// May as well catch all errors 
+						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
+					}
+>>>>>>> 4ae1da88a372ff1e34cd1bbb8a50bd7e30680b93
+=======
+=======
+>>>>>>> Stashed changes
+					//item.setMarker(makeMarker(toColor(a.get("pincolor"))));
+					Drawable marker = makeMarker(10,10, location);
+					//boundCenterBottom(marker);
+					item.setMarker(marker);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 				}
 
 				if (a.containsKey("leftButton")) {
@@ -453,6 +508,10 @@ public class TiMapView extends TiUIView
 		if (d.containsKey("userLocation")) {
 			doUserLocation(d.getBoolean("userLocation"));
 		}
+//		Precursor to enabling customer user location icons
+//		if (d.containsKey("userLocationPinColor")) {
+//			userLocationPinColor = toColor(d.get("userLocationPinColor"));
+//		}
 		if (d.containsKey("annotations")) {
 			proxy.internalSetDynamicValue("annotations", d.get("annotations"), false);
 			Object [] annotations = (Object[]) d.get("annotations");
@@ -692,6 +751,129 @@ public class TiMapView extends TiUIView
 		handler.obtainMessage(MSG_CHANGE_ZOOM, delta, 0).sendToTarget();
 	}
 
+	/**
+	 * Takes the passed value object and acts accordingly based on the passed type
+	 * @param value Object The color value to parse
+	 * @return int the converted color
+	 */
+	private int toColor(Object value) {
+		
+		try {
+			if (value instanceof String) {				
+				// Supported strings: Supported formats are: 
+				//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
+				return TiConvert.toColor((String) value);
+			} else {
+				// Assume it's a numeric
+				switch(TiConvert.toInt(value)) {
+					case 1 : // RED
+						return Color.RED;
+					case 2 : // GREEN
+						return Color.GREEN;
+					case 3 : // PURPLE
+						return Color.argb(255,192,0,192);
+				}						
+			}										
+		} catch (Exception e) {
+			// May as well catch all errors 
+			Log.d(LCAT, "TiMapView - Unable to parse color [" + (TiConvert.toString(value)) +"]");							
+		}
+		// Handle unknown passed ints and exceptions
+		return 0;		
+	}
+	
+	class customPolygon extends PathShape {
+		
+		public customPolygon(Path path, float stdWidth, float stdHeight) {
+			super(path, stdWidth, stdHeight);
+			Log.d(LCAT, "CustomPolygon - Init");
+		}
+
+		@Override
+		public void draw(Canvas c, Paint p) {
+			// TODO Auto-generated method stub
+			super.draw(c, p);
+			Log.d(LCAT, "CustomPolygon - draw");
+		}
+		
+		@Override
+		public void onResize(float width, float height) {
+			super.resize(width, height);
+			Log.d(LCAT, "CustomPolygon - Resize");
+		}
+		
+	}
+	
+	private Drawable makeMarker(int radius, int numPoints, GeoPoint location) {
+        
+        Path shapePath = new Path();
+        float pathWidth = 1;
+        float pathHeight = 1;
+        RectF bounds = new RectF();
+        
+        GeoPoint gp1 = new GeoPoint(scaleToGoogle(41.381315), scaleToGoogle(2.183683));
+        //41.381778, 2.182739
+        GeoPoint gp2 = new GeoPoint(scaleToGoogle(41.381778), scaleToGoogle(2.182739));
+        //41.382563, 2.183388
+        GeoPoint gp3 = new GeoPoint(scaleToGoogle(41.382563), scaleToGoogle(2.183388));
+        GeoPoint gp4 = new GeoPoint(scaleToGoogle(41.382084), scaleToGoogle(2.184329));
+        
+        Point p1 = new Point();
+        Point p2 = new Point();
+        Point p3 = new Point();
+        Point p4 = new Point();
+        
+        
+        
+        Point basePoint = new Point();
+        
+        view.getProjection().toPixels(location, basePoint);
+        
+        view.getProjection().toPixels(gp1, p1);
+        view.getProjection().toPixels(gp2, p2);
+        view.getProjection().toPixels(gp3, p3);
+        view.getProjection().toPixels(gp4, p4);
+        
+        Log.d(LCAT, "makeMarker p1.x:"+p1.x+" p1.y:"+p1.y);
+        Log.d(LCAT, "makeMarker p2.x:"+p2.x+" p2.y:"+p2.y);
+        Log.d(LCAT, "makeMarker p3.x:"+p3.x+" p3.y:"+p3.y);
+        Log.d(LCAT, "makeMarker p4.x:"+p4.x+" p4.y:"+p4.y);
+        
+        Log.d(LCAT, "makeMarker p2.x - p1.x:"+(p2.x-p1.x)+" p2.y - p1.y:"+(p2.y-p1.y));        
+        
+        //shapePath.moveTo(p1.x,p1.y);
+        //shapePath.lineTo(p1.x -basePoint.x , p1.y -basePoint.y);
+        shapePath.lineTo(p2.x - (p1.x) , p2.y -(p1.y));
+        shapePath.lineTo(p3.x -p1.x , p3.y -p1.y);
+        shapePath.lineTo(p4.x -p1.x , p4.y -p1.y);
+        
+//        shapePath.lineTo(10.0f, 0);
+//        shapePath.lineTo(10.0f, -5.0f);
+//        shapePath.lineTo(0.0f,-10.0f);
+//        shapePath.lineTo(0.0f, 0.0f);
+        shapePath.close();
+       
+        shapePath.computeBounds(bounds, true);
+        
+        PathShape p = new PathShape(shapePath, bounds.width(), bounds.height());
+        p.resize(1.0f,1.0f);
+        
+        ShapeDrawable mDrawable = new ShapeDrawable(p);
+        //mDrawable.setPadding(0, 0, 0, 0);
+        mDrawable.getPaint().setColor(TiConvert.toColor("#80FF0000"));
+        mDrawable.getPaint().setStyle(Style.FILL);
+        
+        //mDrawable.setBounds(x, y, width, height);
+        mDrawable.setBounds((int)bounds.left, (int)bounds.top,(int)bounds.right,(int)bounds.bottom);
+        //mDrawable.
+        //mDrawable.setBounds(0, 0, (int)bounds.width(), (int)bounds.height());
+        //mDrawable.setBounds(bounds);
+        
+		//boundCenterBottom(mDrawable);
+        
+        return mDrawable;
+	}
+	
 	private Drawable makeMarker(int c)
 	{
 		OvalShape s = new OvalShape();
@@ -699,6 +881,7 @@ public class TiMapView extends TiUIView
 		ShapeDrawable d = new ShapeDrawable(s);
 		d.setBounds(0, 0, 15, 15);
 		d.getPaint().setColor(c);
+		d.getPaint().clearShadowLayer();
 
 		return d;
 	}

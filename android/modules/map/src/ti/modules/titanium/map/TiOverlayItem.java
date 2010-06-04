@@ -7,6 +7,7 @@
 package ti.modules.titanium.map;
 
 import com.google.android.maps.GeoPoint;
+import com.google.android.maps.MapView;
 import com.google.android.maps.OverlayItem;
 
 public class TiOverlayItem extends OverlayItem
@@ -19,7 +20,7 @@ public class TiOverlayItem extends OverlayItem
 		super(location,title,snippet);
 		this.proxy = proxy;
 	}
-
+	
 	public void setLeftButton(String path) {
 		leftButtonPath = path;
 	}
