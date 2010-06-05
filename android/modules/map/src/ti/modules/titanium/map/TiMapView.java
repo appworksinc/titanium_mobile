@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import org.appcelerator.titanium.TiApplication;
@@ -32,6 +33,7 @@ import org.appcelerator.titanium.view.TiUIView;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
@@ -104,6 +106,7 @@ public class TiMapView extends TiUIView
 
 	private LocalMapView view;
 	private Window mapWindow;
+	private List<Overlay> overlays;
 	private TitaniumOverlay overlay;
 	private MyLocationOverlay myLocation;
 	private TiOverlayItemView itemView;
@@ -172,35 +175,41 @@ public class TiMapView extends TiUIView
 	{
 		ArrayList<AnnotationProxy> annotations;
 		TitaniumOverlayListener listener;
+		boolean enableShadow = true;
 
 		public TitaniumOverlay(Drawable defaultDrawable, TitaniumOverlayListener listener) {
 			super(defaultDrawable);
 			this.listener = listener;
 		}
+		
+		public void setAnnotation(AnnotationProxy annotation) {
+			
+			if (this.annotations == null) {
+				this.annotations = new ArrayList<AnnotationProxy>();
+			}
+			
+			this.annotations.add(annotation);
+		}
+		
+		public AnnotationProxy getAnnotation(int index) {
+			return this.annotations.get(index);
+		}
+		
+		public ArrayList<AnnotationProxy> getAnnontations() {
+			return this.annotations;
+		}
 
 		public void setAnnotations(ArrayList<AnnotationProxy> annotations) {
 			this.annotations = new ArrayList<AnnotationProxy>(annotations);
 
+			doPopulate();
+		}
+		
+		public void doPopulate() {
 			populate();
 		}
 		
-//      Precursor to disabling shadow
-//		
-//		
-//		public void setShadow(boolean v) {
-//			enableShadow = v;
-//		}
-//		
-//		public boolean getShadow() {
-//			return enableShadow;
-//		}
 
-		@Override
-		public void draw(android.graphics.Canvas canvas, MapView mapView, boolean shadow) {
-			if (shadow == false) {
-				super.draw(canvas, mapView, false);
-			}
-		}
 		
 		@Override
 		protected TiOverlayItem createItem(int i) {
@@ -224,14 +233,12 @@ public class TiMapView extends TiUIView
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
 					// Pushed the conversion to it's own function to allow reuse
-<<<<<<< Updated upstream
 
 					item.setMarker(makeMarker(toColor(a.get("pincolor"))));					
 					Object value = a.get("pincolor");
 					
 					try {
-						if (value instanceof String) {
-							
+						if (value instanceof String) {							
 							// Supported strings: Supported formats are: 
 							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
 							int markerColor = TiConvert.toColor((String) value);
@@ -247,19 +254,19 @@ public class TiMapView extends TiUIView
 									break;
 								case 3 : // PURPLE
 									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-									break;
+								break;
+								
+								case 4:
+//									Drawable marker = makeMarker(10,10, location);
+//									//boundCenterBottom(marker);
+//									item.setMarker(marker);
+								break;
 							}						
 						}										
 					} catch (Exception e) {
 						// May as well catch all errors 
 						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
 					}
-=======
->>>>>>> Stashed changes
-					//item.setMarker(makeMarker(toColor(a.get("pincolor"))));
-					Drawable marker = makeMarker(10,10, location);
-					//boundCenterBottom(marker);
-					item.setMarker(marker);
 				}
 
 				if (a.containsKey("leftButton")) {
@@ -276,7 +283,7 @@ public class TiMapView extends TiUIView
 
 		@Override
 		public int size() {
-			return (annotations == null) ? 0 : annotations.size();
+			return (this.annotations == null) ? 0 : this.annotations.size();
 		}
 
 		@Override
@@ -291,6 +298,252 @@ public class TiMapView extends TiUIView
 		}
 	}
 
+	public class TitaniumOverlayCustom extends TitaniumOverlay {
+
+		private boolean enableShadow = true;
+		// Defaults
+		private static final int lineWidthDefault = 2;
+		private static final int lineColorDefault = 0xFF097286;
+		private static final int fillColorDefault = 0x80FF0000;
+		private static final boolean antiAliasDefault = true;
+		private static final boolean completeDefault = true;
+		
+		public void setShadow(boolean v) {
+			enableShadow = v;
+		}
+		
+		public boolean getShadow() {
+			return enableShadow;
+		}		
+		
+		public TitaniumOverlayCustom(Drawable defaultDrawable, TitaniumOverlayListener listener) {
+			super(defaultDrawable, listener);
+		}
+		
+		@Override
+		public boolean onTouchEvent(MotionEvent event, MapView mapView) {
+			
+			Log.d(LCAT, "TitaniumOverlayCustom:onTouchEvent - Start");			
+			AnnotationProxy foundItem = getHitMapLocation(mapView,event);
+			
+			if (foundItem !=null) {				
+				// Just for debugging
+				TiDict props = foundItem.getDynamicProperties();
+				Log.d(LCAT, "TitaniumOverlayCustom:onTouchEvent - Item Found: " + props.getString("title"));
+				
+				// We found something - so find the index so we can bubble the onTap
+				int index = super.annotations.indexOf(foundItem);
+				
+				super.listener.onTap(index);
+				mapView.invalidate();
+				return true;
+			} else {
+				Log.d(LCAT, "TitaniumOverlayCustom:onTouchEvent - No Item Found!");
+				return false;
+			}
+		}
+		
+		private AnnotationProxy getHitMapLocation(MapView mapView, MotionEvent event) {
+
+			// Track which MapLocation was hit…if any
+			AnnotationProxy hitMapLocation = null;
+
+			Iterator<AnnotationProxy> iterator = annotations.iterator();
+			while(iterator.hasNext()) {
+
+				AnnotationProxy testLocation = iterator.next();
+				
+				TiDict props = testLocation.getDynamicProperties();
+		        Path shapePath = new Path();
+		      
+		        // We need to do this more efficiently - but for now extract the data in each function
+				if (props.containsKey("points")) {
+					TiDict itemAttributes = props.getTiDict("points");
+					if (itemAttributes.containsKey("data")) {
+						
+						Object[] dataPoints = (Object [])itemAttributes.get("data");
+						
+						// Build the shape
+						for(int j = 0; j < dataPoints.length; j++) {
+							
+							TiDict dataPoint = (TiDict) dataPoints[j];
+					        GeoPoint gp1 = new GeoPoint(scaleToGoogle(dataPoint.getDouble("latitude")), scaleToGoogle(dataPoint.getDouble("longitude")));
+					        Point p1 = new Point();
+					        view.getProjection().toPixels(gp1, p1);
+					        if (j == 0) {
+						        shapePath.moveTo(p1.x, p1.y);
+					        } else {
+						        shapePath.lineTo(p1.x, p1.y);
+					        }
+						}
+						
+						boolean shouldComplete = itemAttributes.optBoolean("complete", completeDefault);
+						
+						if (shouldComplete) {
+							shapePath.close();
+						} 
+						
+				        // Determine the bounds
+				        RectF bounds = new RectF();
+				        shapePath.computeBounds(bounds, true);
+				        
+				        // We find anything?
+				        if (bounds.contains(event.getX(),event.getY())) {
+				        	hitMapLocation = testLocation;
+				        	break;
+				        }				        
+					}
+				}
+			}
+
+			return hitMapLocation;
+		}
+		
+		@Override
+		protected boolean onTap(int index)
+		{
+			Log.d(LCAT, "TitaniumOverlayCustom:onTap - Start");
+			
+			boolean handled = super.onTap(index);
+			if(!handled ) {
+				Log.d(LCAT, "TitaniumOverlayCustom:onTap - Not Handled");
+				super.listener.onTap(index);
+			}
+
+			return handled;
+		}		
+		
+		@Override
+		protected TiOverlayItem createItem(int i) {
+			TiOverlayItemPolygon item = null;
+
+			Log.d(LCAT, "TitaniumOverlayCustom - Index [" + i +"]");
+			
+			AnnotationProxy p = super.annotations.get(i);
+			TiDict a = p.getDynamicProperties();
+			if (a.containsKey("latitude") && a.containsKey("longitude")) {
+				String title = a.optString("title", "");
+				String subtitle = a.optString("subtitle", "");
+
+				GeoPoint location = new GeoPoint(scaleToGoogle(a.getDouble("latitude")), scaleToGoogle(a.getDouble("longitude")));
+				item = new TiOverlayItemPolygon(location, title, subtitle, p);
+				if (a.containsKey("points")) {
+					item.setDataPoints(a.getTiDict("points"));
+				}
+
+			} else {
+				Log.w(LCAT, "Skipping annotation: No coordinates #" + i);
+			}
+			return item;
+		}		
+		
+		@Override
+		public void draw(android.graphics.Canvas canvas, MapView mapView, boolean shadow) {
+			
+			// We're not doing anything smart yet with shadows
+			if (shadow == false) {
+				
+				for (int i = 0; i < super.annotations.size(); i++) {
+					AnnotationProxy thisItem = super.annotations.get(i);
+					
+					TiDict props = thisItem.getDynamicProperties();
+			        Path shapePath = new Path();
+					
+					if (props.containsKey("points")) {
+						TiDict itemAttributes = props.getTiDict("points");
+						if (itemAttributes.containsKey("data")) {
+							
+							// Grab the actual data
+							Object[] dataPoints = (Object [])itemAttributes.get("data");
+							
+							// Build the path
+							for(int j = 0; j < dataPoints.length; j++) {
+								
+								TiDict dataPoint = (TiDict) dataPoints[j];
+						        GeoPoint gp1 = new GeoPoint(scaleToGoogle(dataPoint.getDouble("latitude")), scaleToGoogle(dataPoint.getDouble("longitude")));
+						        Point p1 = new Point();
+						        view.getProjection().toPixels(gp1, p1);
+						        if (j == 0) {
+						        	// The first item we move to - currently we're not using the initial lat/long from the Annotation
+							        shapePath.moveTo(p1.x, p1.y);
+						        } else {
+							        shapePath.lineTo(p1.x, p1.y);
+						        }
+							}
+							
+							// Auto close the shape?
+							boolean shouldComplete = itemAttributes.optBoolean("complete", completeDefault);
+							
+							if (shouldComplete) {
+								shapePath.close();
+							} 
+							
+					        RectF bounds = new RectF();
+					        shapePath.computeBounds(bounds, true);
+					        
+					        // Start actually drawing the shape - with the fill
+					        // We're currently not handling unfilled shapes
+					        Paint mPaint = new Paint();
+					        
+					        // Handle passed properties					        
+					        if (itemAttributes.containsKey("lineWidth")) {
+						        mPaint.setStrokeWidth(itemAttributes.getInt("lineWidth"));
+					        } else {
+						        mPaint.setStrokeWidth(lineWidthDefault);
+					        }
+					        
+					        // I can do this via itemAttributes.opt I think
+					        if (itemAttributes.containsKey("fillColor")) {
+						        mPaint.setColor(toColor(itemAttributes.get("fillColor"))); //tealish with no transparency
+					        } else {
+						        mPaint.setColor(toColor(fillColorDefault)); //tealish with no transparency
+					        }
+					        					        
+					        if (itemAttributes.containsKey("antiAlias")) {
+						        mPaint.setAntiAlias(itemAttributes.getBoolean("antiAlias"));
+					        } else {
+						        mPaint.setAntiAlias(antiAliasDefault);
+					        }
+					        
+					        mPaint.setStyle(Paint.Style.FILL_AND_STROKE);					        
+					        canvas.drawPath(shapePath, mPaint);	
+					        
+					        // Draw the border only
+					        mPaint = new Paint();
+					        
+					        // Handle passed properties
+					        if (itemAttributes.containsKey("lineWidth")) {
+						        mPaint.setStrokeWidth(itemAttributes.getInt("lineWidth"));
+					        } else {
+						        mPaint.setStrokeWidth(lineWidthDefault);
+					        }
+					        
+					        if (itemAttributes.containsKey("lineColor")) {
+						        mPaint.setColor(toColor(itemAttributes.get("lineColor"))); //tealish with no transparency
+					        } else {
+						        mPaint.setColor(toColor(lineColorDefault)); //tealish with no transparency
+					        }
+					        					        
+					        if (itemAttributes.containsKey("antiAlias")) {
+						        mPaint.setAntiAlias(itemAttributes.getBoolean("antiAlias"));
+					        } else {
+						        mPaint.setAntiAlias(antiAliasDefault);
+					        }
+					        
+					        mPaint.setStyle(Paint.Style.STROKE);
+					        
+					        canvas.drawPath(shapePath, mPaint);	
+							
+						}	
+					}					
+				}
+				super.draw(canvas, mapView, false);
+			}
+		}		
+		
+	}
+	
+	
 	public TiMapView(TiViewProxy proxy, Window mapWindow)
 	{
 		super(proxy);
@@ -591,8 +844,8 @@ public class TiMapView extends TiUIView
 	{
 		if (annotations != null) {
 
-			this.annotations = annotations;
-			List<Overlay> overlays = view.getOverlays();
+			this.annotations = annotations;			
+			overlays = view.getOverlays();
 
 			synchronized(overlays) {
 				if (overlays.contains(overlay)) {
@@ -602,8 +855,28 @@ public class TiMapView extends TiUIView
 
 				if (annotations.size() > 0) {
 					overlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
-					overlay.setAnnotations(annotations);
+					TitaniumOverlayCustom TIc = new TitaniumOverlayCustom(makeMarker(Color.BLUE), this);
+					
+					for (int i = 0; i < annotations.size(); i++) {
+						AnnotationProxy thisItem = annotations.get(i);						
+						TiDict props = thisItem.getDynamicProperties();
+						
+						if (props.containsKey("points")) {
+							TIc.setAnnotation(thisItem);
+						} else {
+							overlay.setAnnotation(thisItem);
+						}						
+					}
+
+					//TIc.setAnnotations(annotations);
+					overlays.add(TIc);
+					
+					//overlay.setAnnotations(annotations);
 					overlays.add(overlay);
+					
+					// Now that annotations are set one by one - we need to trigger populate manually
+					TIc.doPopulate();
+					overlay.doPopulate();
 				}
 
 				view.invalidate();
@@ -774,97 +1047,108 @@ public class TiMapView extends TiUIView
 		return 0;		
 	}
 	
-	class customPolygon extends PathShape {
-		
-		public customPolygon(Path path, float stdWidth, float stdHeight) {
-			super(path, stdWidth, stdHeight);
-			Log.d(LCAT, "CustomPolygon - Init");
-		}
-
-		@Override
-		public void draw(Canvas c, Paint p) {
-			// TODO Auto-generated method stub
-			super.draw(c, p);
-			Log.d(LCAT, "CustomPolygon - draw");
-		}
-		
-		@Override
-		public void onResize(float width, float height) {
-			super.resize(width, height);
-			Log.d(LCAT, "CustomPolygon - Resize");
-		}
-		
-	}
-	
-	private Drawable makeMarker(int radius, int numPoints, GeoPoint location) {
-        
-        Path shapePath = new Path();
-        float pathWidth = 1;
-        float pathHeight = 1;
-        RectF bounds = new RectF();
-        
-        GeoPoint gp1 = new GeoPoint(scaleToGoogle(41.381315), scaleToGoogle(2.183683));
-        //41.381778, 2.182739
-        GeoPoint gp2 = new GeoPoint(scaleToGoogle(41.381778), scaleToGoogle(2.182739));
-        //41.382563, 2.183388
-        GeoPoint gp3 = new GeoPoint(scaleToGoogle(41.382563), scaleToGoogle(2.183388));
-        GeoPoint gp4 = new GeoPoint(scaleToGoogle(41.382084), scaleToGoogle(2.184329));
-        
-        Point p1 = new Point();
-        Point p2 = new Point();
-        Point p3 = new Point();
-        Point p4 = new Point();
-        
-        
-        
-        Point basePoint = new Point();
-        
-        view.getProjection().toPixels(location, basePoint);
-        
-        view.getProjection().toPixels(gp1, p1);
-        view.getProjection().toPixels(gp2, p2);
-        view.getProjection().toPixels(gp3, p3);
-        view.getProjection().toPixels(gp4, p4);
-        
-        Log.d(LCAT, "makeMarker p1.x:"+p1.x+" p1.y:"+p1.y);
-        Log.d(LCAT, "makeMarker p2.x:"+p2.x+" p2.y:"+p2.y);
-        Log.d(LCAT, "makeMarker p3.x:"+p3.x+" p3.y:"+p3.y);
-        Log.d(LCAT, "makeMarker p4.x:"+p4.x+" p4.y:"+p4.y);
-        
-        Log.d(LCAT, "makeMarker p2.x - p1.x:"+(p2.x-p1.x)+" p2.y - p1.y:"+(p2.y-p1.y));        
-        
-        //shapePath.moveTo(p1.x,p1.y);
-        //shapePath.lineTo(p1.x -basePoint.x , p1.y -basePoint.y);
-        shapePath.lineTo(p2.x - (p1.x) , p2.y -(p1.y));
-        shapePath.lineTo(p3.x -p1.x , p3.y -p1.y);
-        shapePath.lineTo(p4.x -p1.x , p4.y -p1.y);
-        
-//        shapePath.lineTo(10.0f, 0);
-//        shapePath.lineTo(10.0f, -5.0f);
-//        shapePath.lineTo(0.0f,-10.0f);
-//        shapePath.lineTo(0.0f, 0.0f);
-        shapePath.close();
-       
-        shapePath.computeBounds(bounds, true);
-        
-        PathShape p = new PathShape(shapePath, bounds.width(), bounds.height());
-        p.resize(1.0f,1.0f);
-        
-        ShapeDrawable mDrawable = new ShapeDrawable(p);
-        //mDrawable.setPadding(0, 0, 0, 0);
-        mDrawable.getPaint().setColor(TiConvert.toColor("#80FF0000"));
-        mDrawable.getPaint().setStyle(Style.FILL);
-        
-        //mDrawable.setBounds(x, y, width, height);
-        mDrawable.setBounds((int)bounds.left, (int)bounds.top,(int)bounds.right,(int)bounds.bottom);
-        //mDrawable.
-        //mDrawable.setBounds(0, 0, (int)bounds.width(), (int)bounds.height());
-        //mDrawable.setBounds(bounds);
-        
-		//boundCenterBottom(mDrawable);
-        
-        return mDrawable;
-	}
+//	class customDrawable extends Drawable {
+//
+//		@Override
+//		public void draw(Canvas c) {
+//			// TODO Auto-generated method stub
+//			
+//	        Path shapePath = new Path();
+//	        float pathWidth = 1;
+//	        float pathHeight = 1;
+//	        RectF bounds = new RectF();
+//	        Point p1 = new Point();
+//	        Point p2 = new Point();
+//	        Point p3 = new Point();
+//	        Point p4 = new Point();
+//	        
+//	        Point basePoint = new Point();
+//	        
+//	        GeoPoint gp1 = new GeoPoint(scaleToGoogle(41.381315), scaleToGoogle(2.183683));
+//	        //41.381778, 2.182739
+//	        GeoPoint gp2 = new GeoPoint(scaleToGoogle(41.381778), scaleToGoogle(2.182739));
+//	        //41.382563, 2.183388
+//	        GeoPoint gp3 = new GeoPoint(scaleToGoogle(41.382563), scaleToGoogle(2.183388));
+//	        GeoPoint gp4 = new GeoPoint(scaleToGoogle(41.382084), scaleToGoogle(2.184329));
+//	        
+//	        
+//	        view.getProjection().toPixels(new GeoPoint(scaleToGoogle(41.381315), scaleToGoogle(2.183683)), basePoint);
+//	        
+//	        view.getProjection().toPixels(gp1, p1);
+//	        view.getProjection().toPixels(gp2, p2);
+//	        view.getProjection().toPixels(gp3, p3);
+//	        view.getProjection().toPixels(gp4, p4);
+//	        
+//	        Log.d(LCAT, "makeMarker p1.x:"+p1.x+" p1.y:"+p1.y);
+//	        Log.d(LCAT, "makeMarker p2.x:"+p2.x+" p2.y:"+p2.y);
+//	        Log.d(LCAT, "makeMarker p3.x:"+p3.x+" p3.y:"+p3.y);
+//	        Log.d(LCAT, "makeMarker p4.x:"+p4.x+" p4.y:"+p4.y);
+//	        
+//	        Log.d(LCAT, "makeMarker p2.x - p1.x:"+(p2.x-p1.x)+" p2.y - p1.y:"+(p2.y-p1.y));        
+//	        
+//	        //shapePath.moveTo(p1.x,p1.y);
+//	        //shapePath.lineTo(p1.x -basePoint.x , p1.y -basePoint.y);
+//	        //shapePath.lineTo(p2.x - (p1.x) , p2.y -(p1.y));
+//	        //shapePath.lineTo(p3.x -p1.x , p3.y -p1.y);
+//	        //shapePath.lineTo(p4.x -p1.x , p4.y -p1.y);
+//	        
+//	        shapePath.moveTo(p1.x, p1.y);
+//	        shapePath.lineTo(p2.x, p2.y);
+//	        shapePath.lineTo(p3.x, p3.y);
+//	        shapePath.lineTo(p4.x, p4.y);
+//	        shapePath.lineTo(p1.x, p1.y);
+//
+//	        shapePath.close();
+//	       
+//	        shapePath.computeBounds(bounds, true);
+//	        
+//	        //this.setBounds(bounds);
+//	        
+//	        //PathShape p = new PathShape(shapePath, bounds.width(), bounds.height());
+//	        //p.resize(1.0f,1.0f);
+//	        
+////	        ShapeDrawable mDrawable = new ShapeDrawable(p);
+////	        //mDrawable.setPadding(0, 0, 0, 0);
+////	        mDrawable.getPaint().setColor(TiConvert.toColor("#80FF00F0"));
+////	        mDrawable.getPaint().setStyle(Style.FILL);
+//	        
+//	        //mDrawable.setBounds(x, y, width, height);
+//	        //mDrawable.setBounds((int)bounds.left, (int)bounds.top,(int)bounds.right,(int)bounds.bottom);			
+//			
+//	        Paint mPaint = new Paint();
+//	        mPaint.setStrokeWidth(2);  //2 pixel line width
+//	        mPaint.setColor(0xFF097286); //tealish with no transparency
+//	        mPaint.setStyle(Paint.Style.STROKE); //stroked, aka a line with no fill
+//	        mPaint.setAntiAlias(true);  // no jagged edges, etc.
+//	        
+//	        //shapePath.	        
+//	        c.drawPath(shapePath, mPaint);
+//		}
+//
+//		@Override
+//		public int getOpacity() {
+//			// TODO Auto-generated method stub
+//			return 0;
+//		}
+//
+//		@Override
+//		public void setAlpha(int arg0) {
+//			// TODO Auto-generated method stub
+//			
+//		}
+//
+//		@Override
+//		public void setColorFilter(ColorFilter arg0) {
+//			// TODO Auto-generated method stub
+//			
+//		}
+//				
+//	}
+//	
+//	private customDrawable makeMarker(int radius, int numPoints, GeoPoint location) {
+//        
+//        return new customDrawable();
+//	}
 	
 	private Drawable makeMarker(int c)
 	{
