@@ -63,6 +63,7 @@ import com.google.android.maps.Overlay;
 
 interface TitaniumOverlayListener {
 	public void onTap(int index);
+	public void onTap(Object overlay, int index);
 }
 
 public class TiMapView extends TiUIView
@@ -334,7 +335,7 @@ public class TiMapView extends TiUIView
 				// We found something - so find the index so we can bubble the onTap
 				int index = super.annotations.indexOf(foundItem);
 				
-				super.listener.onTap(index);
+				super.listener.onTap(this,index);
 				mapView.invalidate();
 				return true;
 			} else {
@@ -696,7 +697,17 @@ public class TiMapView extends TiUIView
 		if (view != null && itemView != null && item != null) {
 			itemView.setItem(index, item);
 			//Make sure the atonnation is always on top of the marker
-			int y = -1*item.getMarker(TiOverlayItem.ITEM_STATE_FOCUSED_MASK).getIntrinsicHeight();
+			
+			Drawable itemMarker = item.getMarker(TiOverlayItem.ITEM_STATE_FOCUSED_MASK);
+			int y;
+			
+			if (itemMarker != null) {
+				y = -1*itemMarker.getIntrinsicHeight();				
+			} else {
+				TiDict props = item.getProxy().getDynamicProperties();
+				y = -1*20;
+			}
+			
 			MapView.LayoutParams params = new MapView.LayoutParams(LayoutParams.WRAP_CONTENT,
 					LayoutParams.WRAP_CONTENT, item.getPoint(), 0, y, MapView.LayoutParams.BOTTOM_CENTER);
 			params.mode = MapView.LayoutParams.MODE_MAP;
@@ -704,6 +715,28 @@ public class TiMapView extends TiUIView
 			view.addView(itemView, params);
 		}
 	}
+	
+	public void onTap(Object overlay, int index) {
+		
+		synchronized (overlay) {
+			
+			TiOverlayItem item = ((TitaniumOverlay)overlay).getItem(index);
+			
+			if (itemView != null && index == itemView.getLastIndex() && itemView.getVisibility() == View.VISIBLE) {
+				hideAnnotation();
+				return;
+			}
+
+			if (item.hasData()) {
+				hideAnnotation();
+				showAnnotation(index, item);
+			} else {
+				Toast.makeText(proxy.getContext(), "No information for location", Toast.LENGTH_SHORT).show();
+			}			
+		}
+		
+	}
+	
 
 	public void onTap(int index)
 	{

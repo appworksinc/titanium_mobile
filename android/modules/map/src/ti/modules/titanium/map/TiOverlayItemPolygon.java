@@ -2,6 +2,8 @@ package ti.modules.titanium.map;
 
 import org.appcelerator.titanium.TiDict;
 
+import android.graphics.drawable.Drawable;
+
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.OverlayItem;
 
@@ -28,6 +30,11 @@ public class TiOverlayItemPolygon extends TiOverlayItem {
 	}
 	public boolean hasData() {
 		return getDataPoints() != null;
+	}
+	
+	@Override
+	public Drawable getMarker(int arg0) {
+		return null;
 	}
 
 }
