@@ -58,6 +58,7 @@
 	
 	<target name="build" depends="build-titanium">
 		<build-module name="accelerometer"/>
+		<build-module name="zendesk" />
 		<build-module name="analytics"/>
 		<build-module name="app"/>
 		<build-module name="api"/>

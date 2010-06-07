@@ -15,6 +15,7 @@ import org.appcelerator.titanium.util.TiActivityResultHandler;
 import org.appcelerator.titanium.util.TiActivitySupport;
 import org.appcelerator.titanium.util.TiActivitySupportHelper;
 import org.appcelerator.titanium.util.TiConfig;
+import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.view.ITiWindowHandler;
 import org.appcelerator.titanium.view.TiCompositeLayout;
 
@@ -220,10 +221,17 @@ public class TiActivity extends Activity
 
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
+		
+		Log.d(LCAT, "onPrepareOptionsMenu ");
+				
 		if (softMenuDispatcher != null) {
+			Log.d(LCAT, "onPrepareOptionsMenu softMenuDispatcher is NOT null");
 			ITiMenuDispatcherListener dispatcher = softMenuDispatcher.get();
 			if (dispatcher != null) {
+				Log.d(LCAT, "onPrepareOptionsMenu dispatcher is NOT null");
 				return dispatcher.dispatchPrepareMenu(menu);
+			} else {
+				Log.d(LCAT, "onPrepareOptionsMenu dispatcher is null");
 			}
 		}
 		return super.onPrepareOptionsMenu(menu);

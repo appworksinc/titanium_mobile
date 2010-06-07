@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="android/modules/accelerometer/src"/>
+	<classpathentry kind="src" path="android/modules/zendesk/src"/>
 	<classpathentry kind="src" path="android/modules/analytics/src"/>
 	<classpathentry kind="src" path="android/modules/api/src"/>
 	<classpathentry kind="src" path="android/modules/app/src"/>
@@ -35,5 +36,6 @@
 	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/platforms/android-8/android.jar"/>
 	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/add-ons/google_apis-8_r01/libs/maps.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="android/build/lib/zendesk.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

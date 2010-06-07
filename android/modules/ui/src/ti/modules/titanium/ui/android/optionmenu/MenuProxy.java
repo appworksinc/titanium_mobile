@@ -14,10 +14,12 @@ import org.appcelerator.titanium.TiProxy;
 public class MenuProxy extends TiProxy
 {
 	protected ArrayList<MenuItemProxy> menuItems;
+	private TiContext context;
 
 	public MenuProxy(TiContext tiContext, Object[] args) {
 		super(tiContext);
 		menuItems = new ArrayList<MenuItemProxy>();
+		this.context = tiContext;
 	}
 
 	public void add(MenuItemProxy mip) {

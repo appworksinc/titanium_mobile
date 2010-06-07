@@ -12,6 +12,8 @@ import java.util.HashMap;
 import org.appcelerator.titanium.TiContext;
 import org.appcelerator.titanium.TiModule;
 import org.appcelerator.titanium.TiProxy;
+import org.appcelerator.titanium.util.Log;
+import org.appcelerator.titanium.util.TiConfig;
 import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.util.TiFileHelper;
 
@@ -21,25 +23,36 @@ import android.view.MenuItem;
 
 public class OptionMenuModule extends TiModule {
 
+	private static final String LCAT = "OptionMenuModule";
+	private static final boolean DBG = TiConfig.LOGD;
+	private TiContext context; 
+	
 	public OptionMenuModule(TiContext tiContext) {
 		super(tiContext);
+		this.context = tiContext;
 	}
 
 	@Override
 	public void propertyChanged(String key, Object oldValue, Object newValue, TiProxy proxy)
 	{
+		Log.d(LCAT, "Key is " + key);
+		
 		if ("menu".equals(key)) {
 			setMenuListener();
 		} else {
 			super.propertyChanged(key, oldValue, newValue, proxy);
 		}
 	}
+	
+	public TiContext getContext() {
+		return context;
+	}
 
 	private void setMenuListener()
 	{
 		final OptionMenuModule me = this;
 
-		getTiContext().setOnMenuEventListener(new TiContext.OnMenuEvent()
+		context.setOnMenuEventListener(new TiContext.OnMenuEvent()
 		{
 
 			private HashMap<Integer, MenuItemProxy> itemMap;
@@ -51,6 +64,7 @@ public class OptionMenuModule extends TiModule {
 			@Override
 			public boolean hasMenu()
 			{
+				Log.d(LCAT, "hasMenu result is " + TiConvert.toString(getMenuProxy() != null));				
 				return getMenuProxy() != null;
 			}
 
@@ -67,9 +81,12 @@ public class OptionMenuModule extends TiModule {
 			@Override
 			public boolean prepareMenu(Menu menu)
 			{
+				Log.d(LCAT, "prepareMenu result is " + TiConvert.toString(menu != null));
+
 				menu.clear();
 				MenuProxy mp = getMenuProxy();
 				if (mp != null) {
+					Log.d(LCAT, "prepareMenu mp isn't null.");
 					ArrayList<MenuItemProxy> menuItems = mp.getMenuItems();
 					itemMap = new HashMap<Integer, MenuItemProxy>(menuItems.size());
 					int id = 0;
@@ -93,8 +110,10 @@ public class OptionMenuModule extends TiModule {
 						}
 					}
 					return true;
+				} else {
+					Log.d(LCAT, "prepareMenu mp IS null.");
+					return false;
 				}
-				return false;
 			}
 		});
 	}

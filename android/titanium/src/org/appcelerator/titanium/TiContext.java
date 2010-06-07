@@ -559,19 +559,43 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 			}
 		}
 	}
+	
+	public OnMenuEvent getOnMenuEventListener() {
+		return menuEventListener;
+	}
 
 	public void setOnMenuEventListener(OnMenuEvent listener) {
+		
+		Log.d(LCAT, "setOnMenuEventListener");
+		
 		if (listener != null) {
+			Log.d(LCAT, "setOnMenuEventListener - listener is NOT null");
 			menuEventListener = listener;
+			
+			//menuEventListener.
+			
 			TiActivitySupport tis = (TiActivitySupport) getActivity();
+			//Activity x = getActivity();
+			
+			//this.fireEvent()
+			
+			Log.d(LCAT, "setOnMenuEventListener - ID is: ");
+			
 			if (tis != null) {
+				Log.d(LCAT, "setOnMenuEventListener - tis is NOT NULL");
 				tis.setMenuDispatchListener(this);
+			} else {
+				Log.d(LCAT, "setOnMenuEventListener - tis is NULL");
 			}
 		} else {
+			Log.d(LCAT, "setOnMenuEventListener - listener is null");
 			menuEventListener = null;
 			TiActivitySupport tis = (TiActivitySupport) getActivity();
 			if (tis != null) {
+				Log.d(LCAT, "setOnMenuEventListener - tis is NOT NULL");
 				tis.setMenuDispatchListener(null);
+			} else {
+				Log.d(LCAT, "setOnMenuEventListener - tis is NULL");
 			}
 		}
 	}
@@ -579,7 +603,10 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 	public boolean dispatchHasMenu()
 	{
 		if (menuEventListener != null) {
+			Log.d(LCAT, "dispatchHasMenu - menuEventListener is NOT NULL");
 			return menuEventListener.hasMenu();
+		} else {
+			Log.d(LCAT, "dispatchHasMenu - menuEventListener is NULL");
 		}
 
 		return false;
@@ -588,7 +615,10 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 	public boolean dispatchPrepareMenu(Menu menu)
 	{
 		if (menuEventListener != null) {
+			Log.d(LCAT, "dispatchPrepareMenu - menuEventListener is NOT NULL");
 			return menuEventListener.prepareMenu(menu);
+		} else {
+			Log.d(LCAT, "dispatchPrepareMenu - menuEventListener is NULL");
 		}
 
 		return false;

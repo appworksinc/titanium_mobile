@@ -786,17 +786,25 @@ public class TiMapView extends TiUIView
 		if (d.containsKey("userLocation")) {
 			doUserLocation(d.getBoolean("userLocation"));
 		}
-//		Precursor to enabling customer user location icons
-//		if (d.containsKey("userLocationPinColor")) {
-//			userLocationPinColor = toColor(d.get("userLocationPinColor"));
-//		}
 		if (d.containsKey("annotations")) {
 			proxy.internalSetDynamicValue("annotations", d.get("annotations"), false);
 			Object [] annotations = (Object[]) d.get("annotations");
+			
+			Log.e(LCAT, "Annotations - start data - Length:" + annotations.length);
+			
 			for(int i = 0; i < annotations.length; i++) {
-				AnnotationProxy ap = (AnnotationProxy) annotations[i];
-				this.annotations.add(ap);
+				
+				Log.e(LCAT, "Annotations - Annotation ["+i+"]- Type:" + (annotations[i]).getClass().getSimpleName());
+
+				try {
+					AnnotationProxy ap = (AnnotationProxy) annotations[i];
+					this.annotations.add(ap);
+				} catch (Exception e) {
+					// TODO: handle exception
+					Log.e(LCAT, "ProcessProperties:ProcessAnnotations Problem with index ["+i+"]" ,e);
+				}
 			}
+			
 			doSetAnnotations(this.annotations);
 		}
 
@@ -1079,109 +1087,6 @@ public class TiMapView extends TiUIView
 		// Handle unknown passed ints and exceptions
 		return 0;		
 	}
-	
-//	class customDrawable extends Drawable {
-//
-//		@Override
-//		public void draw(Canvas c) {
-//			// TODO Auto-generated method stub
-//			
-//	        Path shapePath = new Path();
-//	        float pathWidth = 1;
-//	        float pathHeight = 1;
-//	        RectF bounds = new RectF();
-//	        Point p1 = new Point();
-//	        Point p2 = new Point();
-//	        Point p3 = new Point();
-//	        Point p4 = new Point();
-//	        
-//	        Point basePoint = new Point();
-//	        
-//	        GeoPoint gp1 = new GeoPoint(scaleToGoogle(41.381315), scaleToGoogle(2.183683));
-//	        //41.381778, 2.182739
-//	        GeoPoint gp2 = new GeoPoint(scaleToGoogle(41.381778), scaleToGoogle(2.182739));
-//	        //41.382563, 2.183388
-//	        GeoPoint gp3 = new GeoPoint(scaleToGoogle(41.382563), scaleToGoogle(2.183388));
-//	        GeoPoint gp4 = new GeoPoint(scaleToGoogle(41.382084), scaleToGoogle(2.184329));
-//	        
-//	        
-//	        view.getProjection().toPixels(new GeoPoint(scaleToGoogle(41.381315), scaleToGoogle(2.183683)), basePoint);
-//	        
-//	        view.getProjection().toPixels(gp1, p1);
-//	        view.getProjection().toPixels(gp2, p2);
-//	        view.getProjection().toPixels(gp3, p3);
-//	        view.getProjection().toPixels(gp4, p4);
-//	        
-//	        Log.d(LCAT, "makeMarker p1.x:"+p1.x+" p1.y:"+p1.y);
-//	        Log.d(LCAT, "makeMarker p2.x:"+p2.x+" p2.y:"+p2.y);
-//	        Log.d(LCAT, "makeMarker p3.x:"+p3.x+" p3.y:"+p3.y);
-//	        Log.d(LCAT, "makeMarker p4.x:"+p4.x+" p4.y:"+p4.y);
-//	        
-//	        Log.d(LCAT, "makeMarker p2.x - p1.x:"+(p2.x-p1.x)+" p2.y - p1.y:"+(p2.y-p1.y));        
-//	        
-//	        //shapePath.moveTo(p1.x,p1.y);
-//	        //shapePath.lineTo(p1.x -basePoint.x , p1.y -basePoint.y);
-//	        //shapePath.lineTo(p2.x - (p1.x) , p2.y -(p1.y));
-//	        //shapePath.lineTo(p3.x -p1.x , p3.y -p1.y);
-//	        //shapePath.lineTo(p4.x -p1.x , p4.y -p1.y);
-//	        
-//	        shapePath.moveTo(p1.x, p1.y);
-//	        shapePath.lineTo(p2.x, p2.y);
-//	        shapePath.lineTo(p3.x, p3.y);
-//	        shapePath.lineTo(p4.x, p4.y);
-//	        shapePath.lineTo(p1.x, p1.y);
-//
-//	        shapePath.close();
-//	       
-//	        shapePath.computeBounds(bounds, true);
-//	        
-//	        //this.setBounds(bounds);
-//	        
-//	        //PathShape p = new PathShape(shapePath, bounds.width(), bounds.height());
-//	        //p.resize(1.0f,1.0f);
-//	        
-////	        ShapeDrawable mDrawable = new ShapeDrawable(p);
-////	        //mDrawable.setPadding(0, 0, 0, 0);
-////	        mDrawable.getPaint().setColor(TiConvert.toColor("#80FF00F0"));
-////	        mDrawable.getPaint().setStyle(Style.FILL);
-//	        
-//	        //mDrawable.setBounds(x, y, width, height);
-//	        //mDrawable.setBounds((int)bounds.left, (int)bounds.top,(int)bounds.right,(int)bounds.bottom);			
-//			
-//	        Paint mPaint = new Paint();
-//	        mPaint.setStrokeWidth(2);  //2 pixel line width
-//	        mPaint.setColor(0xFF097286); //tealish with no transparency
-//	        mPaint.setStyle(Paint.Style.STROKE); //stroked, aka a line with no fill
-//	        mPaint.setAntiAlias(true);  // no jagged edges, etc.
-//	        
-//	        //shapePath.	        
-//	        c.drawPath(shapePath, mPaint);
-//		}
-//
-//		@Override
-//		public int getOpacity() {
-//			// TODO Auto-generated method stub
-//			return 0;
-//		}
-//
-//		@Override
-//		public void setAlpha(int arg0) {
-//			// TODO Auto-generated method stub
-//			
-//		}
-//
-//		@Override
-//		public void setColorFilter(ColorFilter arg0) {
-//			// TODO Auto-generated method stub
-//			
-//		}
-//				
-//	}
-//	
-//	private customDrawable makeMarker(int radius, int numPoints, GeoPoint location) {
-//        
-//        return new customDrawable();
-//	}
 	
 	private Drawable makeMarker(int c)
 	{
