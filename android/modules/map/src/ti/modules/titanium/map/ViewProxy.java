@@ -6,16 +6,23 @@
  */
 package ti.modules.titanium.map;
 
+import java.lang.ref.SoftReference;
+import java.util.Collection;
+
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiContext;
+import org.appcelerator.titanium.TiDict;
 import org.appcelerator.titanium.TiContext.OnLifecycleEvent;
 import org.appcelerator.titanium.proxy.TiViewProxy;
 import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.view.TiUIView;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.LocalActivityManager;
 import android.content.Intent;
+import android.view.Display;
 import android.view.Window;
 
 public class ViewProxy extends TiViewProxy
@@ -50,7 +57,38 @@ public class ViewProxy extends TiViewProxy
 		lam.dispatchResume();
 		return new TiMapView(this, mapWindow);
 	}
+	
+//	public JSONArray getLayers() {
+//		
+//		TiMapView mv = (TiMapView) view;
+//		if (mv != null) {
+//			return mv.getLayers().;
+//		} else {
+//			return null;
+//		}
+//		
+//	}
+	
+	public TiDict getLayers() {
+		
+		TiMapView mv = (TiMapView) view;
+		if (mv != null) {
+			return mv.getLayers();
+		} else {
+			return new TiDict();
+		}
+	}
 
+	public TiDict getHiddenLayers() {
+		
+		TiMapView mv = (TiMapView) view;
+		if (mv != null) {
+			return mv.getHiddenLayers();
+		} else {
+			return new TiDict();
+		}
+	}	
+	
 	public void zoom(int delta) {
 		TiMapView mv = (TiMapView) view;
 		if (mv != null) {

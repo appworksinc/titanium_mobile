@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiDict;
@@ -31,6 +32,7 @@ import org.appcelerator.titanium.util.TiConfig;
 import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.util.TiUIHelper;
 import org.appcelerator.titanium.view.TiUIView;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.content.Context;
@@ -115,7 +117,11 @@ public class TiMapView extends TiUIView
 	private LocalMapView view;
 	private Window mapWindow;
 //	private List<Overlay> overlays;
+	/**
+	 * Named layers
+	 */
 	private HashMap<String, TitaniumOverlay> overlays;
+	private ArrayList<String> hiddenLayers;
 //	private TitaniumOverlay overlay;
 	private MyLocationOverlay myLocation;
 	private TiOverlayItemView itemView;
@@ -583,6 +589,7 @@ public class TiMapView extends TiUIView
 		this.mapWindow = mapWindow;
 		this.handler = new Handler(this);
 		this.annotations = new ArrayList<AnnotationProxy>();
+		this.hiddenLayers = new ArrayList<String>();
 
 		//TODO MapKey
 		TiApplication app = proxy.getTiContext().getTiApp();
@@ -889,6 +896,27 @@ public class TiMapView extends TiUIView
 		if (d.containsKey("userLocation")) {
 			doUserLocation(d.getBoolean("userLocation"));
 		}
+		
+		if (d.containsKey("hideLayers")) {
+			// This is a little overkill - but at some point we'll have layers as proper objects
+			Object newValue = d.get("hideLayers");
+			if (newValue instanceof String) {
+				Log.d(LCAT, "processProperties:visibleLayers - passed a string");
+				hiddenLayers.add((String)newValue);
+			} else {
+				if (newValue instanceof String[] ) {
+					// We have an array
+					Log.d(LCAT, "processProperties:hiddenLayers - passed a string array");
+					String[] vLayers = (String[]) newValue;
+					for (String thisLayerName : vLayers) {
+						hiddenLayers.add(thisLayerName);
+					}			
+				} else {
+					Log.d(LCAT, "processProperties:hiddenLayers - passed something other than a string or a string array - "+newValue.getClass().toString());					
+				}
+			}			
+		}
+		
 		if (d.containsKey("annotations")) {
 			proxy.internalSetDynamicValue("annotations", d.get("annotations"), false);
 			Object [] annotations = (Object[]) d.get("annotations");
@@ -910,14 +938,13 @@ public class TiMapView extends TiUIView
 			
 			doSetAnnotations(this.annotations);
 		}
-
+		
 		super.processProperties(d);
 	}
 
 	@Override
 	public void propertyChanged(String key, Object oldValue, Object newValue, TiProxy proxy)
 	{
-
 		if (key.equals("location")) {
 			if (newValue != null) {
 				if (newValue instanceof AnnotationProxy) {
@@ -933,11 +960,45 @@ public class TiMapView extends TiUIView
 			} else {
 				doSetMapType(TiConvert.toInt(newValue));
 			}
+		} else if(key.equals("hideLayers")) {
+			// This is a little overkill - but at some point we'll have layers as proper objects
+			if (newValue instanceof String) {
+				Log.d(LCAT, "propertyChanged:visibleLayers - passed a string");
+				hiddenLayers.add((String)newValue);
+			} else {
+				if (newValue instanceof String[] ) {
+					// We have an array
+					Log.d(LCAT, "propertyChanged:hiddenLayers - passed a string array");
+					String[] vLayers = (String[]) newValue;
+					for (String thisLayerName : vLayers) {
+						hiddenLayers.add(thisLayerName);
+					}			
+				} else {
+					Log.d(LCAT, "propertyChanged:hiddenLayers - passed something other than a string or a string array - "+newValue.getClass().toString());					
+				}
+			}			
 		} else {
 			super.propertyChanged(key, oldValue, newValue, proxy);
 		}
 	}
 
+	public TiDict getLayers() {
+		
+		TiDict data = new TiDict();
+		data.put("layers", TiConvert.toStringArray(overlays.keySet().toArray()));
+		
+		return data;
+	}
+
+	public TiDict getHiddenLayers() {
+		
+		TiDict data = new TiDict();
+		data.put("layers", hiddenLayers);
+		
+		return data;
+	}
+	
+	
 	public void doSetLocation(TiDict d)
 	{
 		LocalMapView view = getView();
@@ -1006,10 +1067,7 @@ public class TiMapView extends TiUIView
 					}					
 				}				
 
-
 				if (annotations.size() > 0) {
-					//overlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
-					//TitaniumOverlayPolygon overlayPoly = new TitaniumOverlayPolygon(makeMarker(Color.BLUE), this);
 					
 					for (int i = 0; i < annotations.size(); i++) {
 						AnnotationProxy thisItem = annotations.get(i);						
@@ -1019,33 +1077,41 @@ public class TiMapView extends TiUIView
 						Integer layarType = props.optInt("layarType", TiMapView.MAP_LAYAR_TYPE_DEFAULT);
 						
 						// TODO: Implement named layers
-						TitaniumOverlay thisOverlay = null;
-						
-						if (overlays.containsKey(layerName)) {
-							// We have something to work with
-							thisOverlay = (TitaniumOverlay) overlays.get(layerName);							
+						// This probably needs to be done a little smarter 
+						//  - should the annotations be added but not added to the overlays?
+						if (isLayerVisible(layerName)) {
+							
+							TitaniumOverlay thisOverlay = null;
+							
+							if (overlays.containsKey(layerName)) {
+								// We have something to work with
+								thisOverlay = (TitaniumOverlay) overlays.get(layerName);							
+							} else {
+								switch (layarType) {
+									case TiMapView.MAP_LAYAR_TYPE_POLYGON:
+										// Validate
+										if (thisOverlay == null) {
+											thisOverlay = new TitaniumOverlayPolygon(makeMarker(Color.BLUE), this);
+										}
+										if (!props.containsKey("points")) {
+											Log.d(LCAT, "Invalid Annotation - required property 'points' not found ");
+										}								
+									break;
+			
+									default:
+										if (thisOverlay == null) {
+											thisOverlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
+										}
+									break;
+								}							
+								overlays.put(layerName,thisOverlay);
+								currentOverlays.add(thisOverlay);
+							}						
+							thisOverlay.setAnnotation(thisItem);							
+							
 						} else {
-							switch (layarType) {
-								case TiMapView.MAP_LAYAR_TYPE_POLYGON:
-									// Validate
-									if (thisOverlay == null) {
-										thisOverlay = new TitaniumOverlayPolygon(makeMarker(Color.BLUE), this);
-									}
-									if (!props.containsKey("points")) {
-										Log.e(LCAT, "Invalid Annotation - required property 'points' not found ");
-									}								
-								break;
-		
-								default:
-									if (thisOverlay == null) {
-										thisOverlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
-									}
-								break;
-							}							
-							overlays.put(layerName,thisOverlay);
-							currentOverlays.add(thisOverlay);
-						}						
-						thisOverlay.setAnnotation(thisItem);
+							Log.d(LCAT, "Layer ["+layerName+"] is hidden - skipping annotation.");							
+						}
 					}
 					
 					colValues = overlays.values();
@@ -1165,6 +1231,10 @@ public class TiMapView extends TiUIView
 		}
 	}
 
+	public Boolean isLayerVisible(String Layer) {
+		return !(hiddenLayers.contains(Layer));
+	}
+	
 	public void doUserLocation(boolean userLocation)
 	{
 		if (view != null) {
