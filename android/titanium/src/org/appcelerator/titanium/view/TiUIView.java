@@ -117,6 +117,7 @@ public abstract class TiUIView
 		}
 		this.nativeView = view;
 		nativeView.setOnFocusChangeListener(this);
+		nativeView.setFocusableInTouchMode(true);
 	}
 	protected void setLayoutParams(LayoutParams layoutParams) {
 		this.layoutParams = layoutParams;

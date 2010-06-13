@@ -11,10 +11,12 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiDict;
@@ -29,6 +31,7 @@ import org.appcelerator.titanium.util.TiConfig;
 import org.appcelerator.titanium.util.TiConvert;
 import org.appcelerator.titanium.util.TiUIHelper;
 import org.appcelerator.titanium.view.TiUIView;
+import org.json.JSONObject;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -62,8 +65,9 @@ import com.google.android.maps.MyLocationOverlay;
 import com.google.android.maps.Overlay;
 
 interface TitaniumOverlayListener {
-	public void onTap(int index);
-	public void onTap(Object overlay, int index);
+	public boolean onTap(int index);
+	public boolean onTap(Object overlay, int index);
+	public boolean onTouchEvent(android.view.MotionEvent event, MapView mapView);	
 }
 
 public class TiMapView extends TiUIView
@@ -83,7 +87,10 @@ public class TiMapView extends TiUIView
 	public static final int MAP_VIEW_STANDARD = 1;
 	public static final int MAP_VIEW_SATELLITE = 2;
 	public static final int MAP_VIEW_HYBRID = 3;
-
+	
+	public static final int MAP_LAYAR_TYPE_DEFAULT = 1;
+	public static final int MAP_LAYAR_TYPE_POLYGON = 2;
+	
 	private static final int MSG_SET_LOCATION = 300;
 	private static final int MSG_SET_MAPTYPE = 301;
 	private static final int MSG_SET_REGIONFIT = 302;
@@ -107,8 +114,9 @@ public class TiMapView extends TiUIView
 
 	private LocalMapView view;
 	private Window mapWindow;
-	private List<Overlay> overlays;
-	private TitaniumOverlay overlay;
+//	private List<Overlay> overlays;
+	private HashMap<String, TitaniumOverlay> overlays;
+//	private TitaniumOverlay overlay;
 	private MyLocationOverlay myLocation;
 	private TiOverlayItemView itemView;
 	private ArrayList<AnnotationProxy> annotations;
@@ -177,6 +185,7 @@ public class TiMapView extends TiUIView
 		ArrayList<AnnotationProxy> annotations;
 		TitaniumOverlayListener listener;
 		boolean enableShadow = true;
+		int overlayType = TiMapView.MAP_LAYAR_TYPE_DEFAULT;
 
 		public TitaniumOverlay(Drawable defaultDrawable, TitaniumOverlayListener listener) {
 			super(defaultDrawable);
@@ -206,11 +215,13 @@ public class TiMapView extends TiUIView
 			doPopulate();
 		}
 		
+		public int getOverlayType() {
+			return this.overlayType;
+		}
+		
 		public void doPopulate() {
 			populate();
 		}
-		
-
 		
 		@Override
 		protected TiOverlayItem createItem(int i) {
@@ -236,38 +247,34 @@ public class TiMapView extends TiUIView
 					// Pushed the conversion to it's own function to allow reuse
 
 					item.setMarker(makeMarker(toColor(a.get("pincolor"))));					
-					Object value = a.get("pincolor");
+//					Object value = a.get("pincolor");
+//					item.setMarker(makeMarker(toColor(value)));							
 					
-					try {
-						if (value instanceof String) {							
-							// Supported strings: Supported formats are: 
-							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
-							int markerColor = TiConvert.toColor((String) value);
-							item.setMarker(makeMarker(markerColor));							
-						} else {
-							// Assume it's a numeric
-							switch(a.getInt("pincolor")) {
-								case 1 : // RED
-									item.setMarker(makeMarker(Color.RED));
-									break;
-								case 2 : // GRE
-									item.setMarker(makeMarker(Color.GREEN));
-									break;
-								case 3 : // PURPLE
-									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-								break;
-								
-								case 4:
-//									Drawable marker = makeMarker(10,10, location);
-//									//boundCenterBottom(marker);
-//									item.setMarker(marker);
-								break;
-							}						
-						}										
-					} catch (Exception e) {
-						// May as well catch all errors 
-						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
-					}
+//					try {
+//						if (value instanceof String) {							
+//							// Supported strings: Supported formats are: 
+//							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
+//							int markerColor = TiConvert.toColor((String) value);
+//							item.setMarker(makeMarker(toColor(value)));							
+//						} else {
+//							// Assume it's a numeric
+//							switch(a.getInt("pincolor")) {
+//								case 1 : // RED
+//									item.setMarker(makeMarker(Color.RED));
+//									break;
+//								case 2 : // GRE
+//									item.setMarker(makeMarker(Color.GREEN));
+//									break;
+//								case 3 : // PURPLE
+//									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
+//								break;
+//								
+//							}						
+//						}										
+//					} catch (Exception e) {
+//						// May as well catch all errors 
+//						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
+//					}
 				}
 
 				if (a.containsKey("leftButton")) {
@@ -288,18 +295,38 @@ public class TiMapView extends TiUIView
 		}
 
 		@Override
-		protected boolean onTap(int index)
-		{
+		protected boolean onTap(int index) {			
+			Log.d(LCAT, "TitaniumOverlay:onTap - Start");
 			boolean handled = super.onTap(index);
 			if(!handled ) {
-				listener.onTap(index);
+				Log.d(LCAT, "TitaniumOverlay:onTap - !handled");
+				handled = listener.onTap(this,index);
+			} else {
+				Log.d(LCAT, "TitaniumOverlay:onTap - Handled by Super");
 			}
 
 			return handled;
 		}
+		
+//		@Override
+//		public boolean onTouchEvent(MotionEvent event, MapView mapView) {
+//			
+//			Log.d(LCAT, "TitaniumOverlay:onTouchEvent - Start");
+//			
+//			boolean handled = super.onTouchEvent(event, mapView);
+//			if(!handled ) {
+//				Log.d(LCAT, "TitaniumOverlay:onTouchEvent - not handled by super - passing to the listener.");
+//				handled = listener.onTouchEvent(event, mapView);
+//			} else {
+//				Log.d(LCAT, "TitaniumOverlay:onTouchEvent - handled by super");				
+//			}
+//
+//			return handled;
+//		}				
+		
 	}
 
-	public class TitaniumOverlayCustom extends TitaniumOverlay {
+	public class TitaniumOverlayPolygon extends TitaniumOverlay {
 
 		private boolean enableShadow = true;
 		// Defaults
@@ -317,32 +344,51 @@ public class TiMapView extends TiUIView
 			return enableShadow;
 		}		
 		
-		public TitaniumOverlayCustom(Drawable defaultDrawable, TitaniumOverlayListener listener) {
+		public TitaniumOverlayPolygon(Drawable defaultDrawable, TitaniumOverlayListener listener) {
 			super(defaultDrawable, listener);
+			this.overlayType = TiMapView.MAP_LAYAR_TYPE_POLYGON;
 		}
 		
+		
 		@Override
-		public boolean onTouchEvent(MotionEvent event, MapView mapView) {
+		protected boolean onTap(int index)
+		{
+			Log.d(LCAT, "TitaniumOverlayPolygon:onTap - Start");
 			
-			Log.d(LCAT, "TitaniumOverlayCustom:onTouchEvent - Start");			
-			AnnotationProxy foundItem = getHitMapLocation(mapView,event);
-			
-			if (foundItem !=null) {				
-				// Just for debugging
-				TiDict props = foundItem.getDynamicProperties();
-				Log.d(LCAT, "TitaniumOverlayCustom:onTouchEvent - Item Found: " + props.getString("title"));
-				
-				// We found something - so find the index so we can bubble the onTap
-				int index = super.annotations.indexOf(foundItem);
-				
-				super.listener.onTap(this,index);
-				mapView.invalidate();
-				return true;
-			} else {
-				Log.d(LCAT, "TitaniumOverlayCustom:onTouchEvent - No Item Found!");
-				return false;
+			boolean handled = false;
+			if(!handled ) {
+				Log.d(LCAT, "TitaniumOverlayPolygon:onTap - Not Handled");
+				handled = super.listener.onTap(this,index);
 			}
-		}
+
+			return handled;
+		}	
+		
+//		@Override
+//		public boolean onTouchEvent(MotionEvent event, MapView mapView) {
+//			
+//			Log.d(LCAT, "TitaniumOverlayPolygon:onTouchEvent - Start");			
+//			AnnotationProxy foundItem = getHitMapLocation(mapView,event);
+//			
+//			boolean handled = false;
+//			
+//			if (foundItem !=null) {				
+//				// Just for debugging
+//				TiDict props = foundItem.getDynamicProperties();
+//				Log.d(LCAT, "TitaniumOverlayPolygon:onTouchEvent - Item Found: " + props.getString("title"));
+//				
+//				// We found something - so find the index so we can bubble the onTap
+//				int index = super.annotations.indexOf(foundItem);
+//				
+//				// Bubble up the event to the listener
+//				handled = super.listener.onTap(this,index);
+//				mapView.invalidate();
+//				return handled;
+//			} else {
+//				Log.d(LCAT, "TitaniumOverlayPolygon:onTouchEvent - No Item Found!");
+//				return false;
+//			}
+//		}
 		
 		private AnnotationProxy getHitMapLocation(MapView mapView, MotionEvent event) {
 
@@ -401,24 +447,10 @@ public class TiMapView extends TiUIView
 		}
 		
 		@Override
-		protected boolean onTap(int index)
-		{
-			Log.d(LCAT, "TitaniumOverlayCustom:onTap - Start");
-			
-			boolean handled = super.onTap(index);
-			if(!handled ) {
-				Log.d(LCAT, "TitaniumOverlayCustom:onTap - Not Handled");
-				super.listener.onTap(index);
-			}
-
-			return handled;
-		}		
-		
-		@Override
 		protected TiOverlayItem createItem(int i) {
 			TiOverlayItemPolygon item = null;
 
-			Log.d(LCAT, "TitaniumOverlayCustom - Index [" + i +"]");
+			Log.d(LCAT, "TitaniumOverlayPolygon - Index [" + i +"]");
 			
 			AnnotationProxy p = super.annotations.get(i);
 			TiDict a = p.getDynamicProperties();
@@ -427,8 +459,8 @@ public class TiMapView extends TiUIView
 				String subtitle = a.optString("subtitle", "");
 
 				GeoPoint location = new GeoPoint(scaleToGoogle(a.getDouble("latitude")), scaleToGoogle(a.getDouble("longitude")));
-				item = new TiOverlayItemPolygon(location, title, subtitle, p);
 				if (a.containsKey("points")) {
+					item = new TiOverlayItemPolygon(location, title, subtitle, p);
 					item.setDataPoints(a.getTiDict("points"));
 				}
 
@@ -495,9 +527,9 @@ public class TiMapView extends TiUIView
 					        
 					        // I can do this via itemAttributes.opt I think
 					        if (itemAttributes.containsKey("fillColor")) {
-						        mPaint.setColor(toColor(itemAttributes.get("fillColor"))); //tealish with no transparency
+						        mPaint.setColor(toColor(itemAttributes.get("fillColor"))); 
 					        } else {
-						        mPaint.setColor(toColor(fillColorDefault)); //tealish with no transparency
+						        mPaint.setColor(toColor(fillColorDefault)); 
 					        }
 					        					        
 					        if (itemAttributes.containsKey("antiAlias")) {
@@ -538,7 +570,6 @@ public class TiMapView extends TiUIView
 						}	
 					}					
 				}
-				super.draw(canvas, mapView, false);
 			}
 		}		
 		
@@ -611,8 +642,12 @@ public class TiMapView extends TiUIView
 		itemView = new TiOverlayItemView(proxy.getContext());
 		itemView.setOnOverlayClickedListener(new TiOverlayItemView.OnOverlayClicked(){
 			public void onClick(int lastIndex, String clickedItem) {
+				
+				TitaniumOverlay overlay = getDefaultOverlay();				
 				TiOverlayItem item = overlay.getItem(lastIndex);
+				
 				if (item != null) {
+					Log.d(LCAT, "TiMapView:onClick - item is found - index ["+lastIndex+"] & clickedItem ["+clickedItem+"]");
 					TiDict d = new TiDict();
 					d.put("title", item.getTitle());
 					d.put("subtitle", item.getSnippet());
@@ -622,6 +657,9 @@ public class TiMapView extends TiUIView
 					d.put("clicksource", clickedItem);
 
 					fproxy.fireEvent(EVENT_CLICK, d);
+				} else {
+					// item is null
+					Log.d(LCAT, "TiMapView:onClick - item is null - index ["+lastIndex+"] & clickedItem ["+clickedItem+"]");
 				}
 			}
 		});
@@ -696,68 +734,133 @@ public class TiMapView extends TiUIView
 	{
 		if (view != null && itemView != null && item != null) {
 			itemView.setItem(index, item);
-			//Make sure the atonnation is always on top of the marker
+			//Make sure the annotation is always on top of the marker
 			
-			Drawable itemMarker = item.getMarker(TiOverlayItem.ITEM_STATE_FOCUSED_MASK);
-			int y;
+			Log.d(LCAT, "showAnnotation index ["+index+"]");
 			
-			if (itemMarker != null) {
-				y = -1*itemMarker.getIntrinsicHeight();				
-			} else {
-				TiDict props = item.getProxy().getDynamicProperties();
-				y = -1*20;
+			TiDict props = item.getProxy().getDynamicProperties();
+			int y=0;
+			
+			switch (props.getInt("layarType")) {
+				case TiMapView.MAP_LAYAR_TYPE_POLYGON:
+					Log.d(LCAT, "showAnnotation layarType is Poly");
+					y = -20;					
+				break;
+	
+				default:
+					Log.d(LCAT, "showAnnotation layarType is default");
+					Drawable itemMarker = item.getMarker(TiOverlayItem.ITEM_STATE_FOCUSED_MASK);
+					if (itemMarker != null) {
+						y = -1*itemMarker.getIntrinsicHeight();
+					}				
+				break;
 			}
-			
+						
 			MapView.LayoutParams params = new MapView.LayoutParams(LayoutParams.WRAP_CONTENT,
 					LayoutParams.WRAP_CONTENT, item.getPoint(), 0, y, MapView.LayoutParams.BOTTOM_CENTER);
 			params.mode = MapView.LayoutParams.MODE_MAP;
 
 			view.addView(itemView, params);
+		} else {
+			Log.d(LCAT, "showAnnotation view, ItemView or Item is null.");			
 		}
 	}
 	
-	public void onTap(Object overlay, int index) {
+	public boolean onTap(Object overlay, int index) {
 		
 		synchronized (overlay) {
-			
+			Log.d(LCAT, "TiMapView:onTap with overlay & index ["+index+"]");			
 			TiOverlayItem item = ((TitaniumOverlay)overlay).getItem(index);
 			
-			if (itemView != null && index == itemView.getLastIndex() && itemView.getVisibility() == View.VISIBLE) {
-				hideAnnotation();
-				return;
-			}
-
-			if (item.hasData()) {
-				hideAnnotation();
-				showAnnotation(index, item);
-			} else {
-				Toast.makeText(proxy.getContext(), "No information for location", Toast.LENGTH_SHORT).show();
-			}			
-		}
-		
-	}
-	
-
-	public void onTap(int index)
-	{
-		if (overlay != null) {
-			synchronized(overlay) {
-				TiOverlayItem item = overlay.getItem(index);
-
-				if (itemView != null && index == itemView.getLastIndex() && itemView.getVisibility() == View.VISIBLE) {
-					hideAnnotation();
-					return;
+			if (itemView != null) {
+				if (itemView.getLastItem() !=null && itemView.getLastItem().equals(item)) {					
+					if (itemView.getVisibility() == View.VISIBLE) {
+						Log.d(LCAT, "TiMapView:onTap hideAnnotation");			
+						hideAnnotation();	
+						return true;
+					} else {
+						Log.d(LCAT, "TiMapView:onTap isn't Visible");									
+					}
+				} else {
+					if (itemView.getLastItem() == null) {
+						Log.d(LCAT, "TiMapView:onTap LastItem is null");						
+					} else {
+						Log.d(LCAT, "TiMapView:onTap !equals");	
+						Log.d(LCAT, "TiMapView:onTap lastItemHash - "+itemView.getLastItem().hashCode());	
+						Log.d(LCAT, "TiMapView:onTap lastItemHash - "+item.hashCode());	
+					}					
 				}
+			}
+//			} else {
+				if (item.hasData()) {
+					Log.d(LCAT, "TiMapView:onTap hasData");			
 
-				if (item.hasData())
-				{
 					hideAnnotation();
 					showAnnotation(index, item);
+					return true;
 				} else {
-					Toast.makeText(proxy.getContext(), "No information for location", Toast.LENGTH_SHORT).show();
+					Log.d(LCAT, "TiMapView:onTap hasData is FALSE");
+					//Toast.makeText(proxy.getContext(), "No information for location", Toast.LENGTH_SHORT).show();
+					Toast.makeText(this.mapWindow.getContext(), "No information for location", Toast.LENGTH_SHORT).show();					
+				}	
+//			}
+		}
+		return false;
+			
+//			if (itemView != null && index == itemView.getLastIndex() && itemView.getVisibility() == View.VISIBLE) {
+//				Log.d(LCAT, "onTap hideAnnotation");			
+//				hideAnnotation();
+//			} else {
+//				if (item.hasData()) {
+//					Log.d(LCAT, "onTap hasData");			
+//
+//					hideAnnotation();
+//					showAnnotation(index, item);
+//					return true;
+//				} else {
+//					Log.d(LCAT, "onTap hasData is FALSE");
+//					//Toast.makeText(proxy.getContext(), "No information for location", Toast.LENGTH_SHORT).show();
+//					Toast.makeText(this.mapWindow.getContext(), "No information for location", Toast.LENGTH_SHORT).show();					
+//				}				
+//			}
+//			return false;
+	}		
+	
+	
+
+	public boolean onTap(int index)
+	{
+		TitaniumOverlay thisOverlay = getDefaultOverlay();
+		
+		Log.d(LCAT, "TiMapView:onTap with index ["+index+"]");			
+		
+		if (thisOverlay != null) {
+			Log.d(LCAT, "TiMapView:onTap found a default Overlay");			
+
+			synchronized(thisOverlay) {
+				// TODO: We should really use the global annotations and work out which overlay it's actually assoc with
+				TiOverlayItem item = thisOverlay.getItem(index);
+
+				if (itemView != null && index == itemView.getLastIndex() && itemView.getVisibility() == View.VISIBLE) {
+					Log.d(LCAT, "TiMapView:onTap hideAnnotation");			
+					hideAnnotation();
+				} else {
+					if (item.hasData()) {
+						Log.d(LCAT, "TiMapView:onTap hasData");			
+						hideAnnotation();
+						showAnnotation(index, item);
+						return true;
+					} else {
+						Log.d(LCAT, "TiMapView:onTap hasData is FALSE");
+						//Toast.makeText(proxy.getContext(), "No information for location", Toast.LENGTH_SHORT).show();
+						Toast.makeText(this.mapWindow.getContext(), "No information for location", Toast.LENGTH_SHORT).show();					
+					}
 				}
 			}
+		} else {
+			Log.d(LCAT, "TiMapView:onTap with no Default Overlay");			
 		}
+		return false;
 	}
 
 	@Override
@@ -886,40 +989,75 @@ public class TiMapView extends TiUIView
 		if (annotations != null) {
 
 			this.annotations = annotations;			
-			overlays = view.getOverlays();
+			overlays = new HashMap<String, TitaniumOverlay>();
+			List<Overlay> currentOverlays = view.getOverlays();
 
-			synchronized(overlays) {
-				if (overlays.contains(overlay)) {
-					overlays.remove(overlay);
-					overlay = null;
-				}
+			synchronized(currentOverlays) {
+				
+				// Legacy - not sure if this is needed - but clear out the old overlays
+				Collection<TitaniumOverlay> colValues = overlays.values();
+				Iterator<TitaniumOverlay> iterator = colValues.iterator();
+				
+				while(iterator.hasNext()) {
+					TitaniumOverlay thisOverlay = iterator.next();
+					
+					if (currentOverlays.contains(thisOverlay)) {
+						overlays.remove(thisOverlay);
+					}					
+				}				
+
 
 				if (annotations.size() > 0) {
-					overlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
-					TitaniumOverlayCustom TIc = new TitaniumOverlayCustom(makeMarker(Color.BLUE), this);
+					//overlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
+					//TitaniumOverlayPolygon overlayPoly = new TitaniumOverlayPolygon(makeMarker(Color.BLUE), this);
 					
 					for (int i = 0; i < annotations.size(); i++) {
 						AnnotationProxy thisItem = annotations.get(i);						
 						TiDict props = thisItem.getDynamicProperties();
 						
-						if (props.containsKey("points")) {
-							TIc.setAnnotation(thisItem);
+						String layerName = props.optString("layarName", "default").toLowerCase();
+						Integer layarType = props.optInt("layarType", TiMapView.MAP_LAYAR_TYPE_DEFAULT);
+						
+						// TODO: Implement named layers
+						TitaniumOverlay thisOverlay = null;
+						
+						if (overlays.containsKey(layerName)) {
+							// We have something to work with
+							thisOverlay = (TitaniumOverlay) overlays.get(layerName);							
 						} else {
-							overlay.setAnnotation(thisItem);
+							switch (layarType) {
+								case TiMapView.MAP_LAYAR_TYPE_POLYGON:
+									// Validate
+									if (thisOverlay == null) {
+										thisOverlay = new TitaniumOverlayPolygon(makeMarker(Color.BLUE), this);
+									}
+									if (!props.containsKey("points")) {
+										Log.e(LCAT, "Invalid Annotation - required property 'points' not found ");
+									}								
+								break;
+		
+								default:
+									if (thisOverlay == null) {
+										thisOverlay = new TitaniumOverlay(makeMarker(Color.BLUE), this);
+									}
+								break;
+							}							
+							overlays.put(layerName,thisOverlay);
+							currentOverlays.add(thisOverlay);
 						}						
+						thisOverlay.setAnnotation(thisItem);
 					}
-
-					//TIc.setAnnotations(annotations);
-					overlays.add(TIc);
 					
-					//overlay.setAnnotations(annotations);
-					overlays.add(overlay);
+					colValues = overlays.values();
+					iterator = colValues.iterator();
 					
-					// Now that annotations are set one by one - we need to trigger populate manually
-					TIc.doPopulate();
-					overlay.doPopulate();
+					while(iterator.hasNext()) {
+						TitaniumOverlay thisOverlay = iterator.next();
+						thisOverlay.doPopulate();
+					}					
 				}
 
+				// Trigger the update of the view
 				view.invalidate();
 			}
 		}
@@ -991,9 +1129,14 @@ public class TiMapView extends TiUIView
 
 	public void doSelectAnnotation(boolean select, String title, boolean animate)
 	{
+		TitaniumOverlay overlay = getDefaultOverlay();
+		
 		if (title != null && view != null && annotations != null && overlay != null) {
 			int index = findAnnotation(title);
 			if (index > -1) {
+				
+				Log.d(LCAT, "TiMapView:doSelectAnnotation - item is null - title ["+title+"]");
+				
 				if (overlay != null) {
 					synchronized(overlay) {
 						TiOverlayItem item = overlay.getItem(index);
@@ -1057,6 +1200,51 @@ public class TiMapView extends TiUIView
 		handler.obtainMessage(MSG_CHANGE_ZOOM, delta, 0).sendToTarget();
 	}
 
+	private TitaniumOverlay getDefaultOverlay() {
+		return getOverlay(TiMapView.MAP_LAYAR_TYPE_DEFAULT);
+	}
+		
+	/**
+	 * Return the first overlay found of the passed type
+	 * @param mapOverlayType
+	 * @return TitaniumOverlay
+	 */
+	private TitaniumOverlay getOverlay(int mapOverlayType) {
+		
+		synchronized (overlays) {
+
+			Collection<TitaniumOverlay> colValues = overlays.values();
+			Iterator<TitaniumOverlay> iterator = colValues.iterator();
+			
+			while(iterator.hasNext()) {
+				TitaniumOverlay theOverlay = iterator.next();
+				if (theOverlay.getOverlayType() == mapOverlayType) {
+					return theOverlay;
+				}
+			}			
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Return the overlay associated with the passed name
+	 * 
+	 * @param mapOverlayName
+	 * @return TitaniumOverlay 
+	 */
+	private TitaniumOverlay getOverlay(String mapOverlayName) {
+		
+		synchronized (overlays) {
+			try {
+				return overlays.get(mapOverlayName);
+			} catch (Exception e) {
+				// TODO: handle exception
+				return null;
+			}
+		}		
+	}
+		
 	/**
 	 * Takes the passed value object and acts accordingly based on the passed type
 	 * @param value Object The color value to parse
@@ -1119,5 +1307,11 @@ public class TiMapView extends TiUIView
 
 	private int scaleToGoogle(double value) {
 		return (int)(value * 1000000);
+	}
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event, MapView mapView) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

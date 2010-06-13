@@ -35,6 +35,10 @@ public class MapModule extends TiModule
 			constants.put("STANDARD_TYPE", TiMapView.MAP_VIEW_STANDARD);
 			constants.put("SATELLITE_TYPE", TiMapView.MAP_VIEW_SATELLITE);
 			constants.put("HYBRID_TYPE", TiMapView.MAP_VIEW_HYBRID);
+			
+			constants.put("MAP_LAYAR_TYPE_DEFAULT", TiMapView.MAP_LAYAR_TYPE_DEFAULT);
+			constants.put("MAP_LAYAR_TYPE_POLYGON", TiMapView.MAP_LAYAR_TYPE_POLYGON);
+			
 		}
 
 		return constants;

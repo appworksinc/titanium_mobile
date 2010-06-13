@@ -6,6 +6,10 @@
  */
 package ti.modules.titanium.map;
 
+import org.appcelerator.titanium.TiDict;
+import org.appcelerator.titanium.util.TiConvert;
+import org.json.JSONObject;
+
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.MapView;
 import com.google.android.maps.OverlayItem;
@@ -40,7 +44,20 @@ public class TiOverlayItem extends OverlayItem
 	public AnnotationProxy getProxy() {
 		return proxy;
 	}
+	
 	public boolean hasData() {
 		return getTitle() != null || getSnippet() != null | leftButtonPath != null || rightButtonPath != null;
 	}
+	
+//	public JSONObject getScreenPosition() {
+//		GeoPoint location = super.getPoint();
+//		TiDict position = new TiDict();
+//		
+//		proxy.
+//		
+//		position.put("screenX", location.getLatitudeE6());
+//		position.put("screenY", location.getLongitudeE6());
+//		return TiConvert.toJSON(position);
+//	}
+	
 }
