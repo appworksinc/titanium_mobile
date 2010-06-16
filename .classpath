@@ -22,6 +22,7 @@
 	<classpathentry kind="src" path="android/titanium/thirdparty"/>
 	<classpathentry kind="src" path="demos/ApiCheck/build/android/src"/>
 	<classpathentry excluding="Activity.java|AndroidManifest.xml|App.java|AppInfo.java|AppUserData.java|classpath|default.properties|gitignore|project" kind="src" path="support/android/templates"/>
+	<classpathentry kind="src" path="android/modules/ads/src"/>
 	<classpathentry kind="lib" path="android/build/lib/ant-launcher.jar"/>
 	<classpathentry kind="lib" path="android/build/lib/ant-nodeps.jar"/>
 	<classpathentry kind="lib" path="android/build/lib/ant.jar"/>
@@ -36,6 +37,11 @@
 	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/platforms/android-8/android.jar"/>
 	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/add-ons/google_apis-8_r01/libs/maps.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="android/build/lib/zendesk.jar"/>
+	<classpathentry kind="lib" path="android/modules/admob/lib/admob-sdk-android.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/home/dasher/development/admob-javadoc/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="android/modules/zendesk/lib/zendesk.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

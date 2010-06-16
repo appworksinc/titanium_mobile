@@ -314,22 +314,6 @@ public class TiMapView extends TiUIView
 			return handled;
 		}
 		
-//		@Override
-//		public boolean onTouchEvent(MotionEvent event, MapView mapView) {
-//			
-//			Log.d(LCAT, "TitaniumOverlay:onTouchEvent - Start");
-//			
-//			boolean handled = super.onTouchEvent(event, mapView);
-//			if(!handled ) {
-//				Log.d(LCAT, "TitaniumOverlay:onTouchEvent - not handled by super - passing to the listener.");
-//				handled = listener.onTouchEvent(event, mapView);
-//			} else {
-//				Log.d(LCAT, "TitaniumOverlay:onTouchEvent - handled by super");				
-//			}
-//
-//			return handled;
-//		}				
-		
 	}
 
 	public class TitaniumOverlayPolygon extends TitaniumOverlay {
@@ -369,33 +353,7 @@ public class TiMapView extends TiUIView
 
 			return handled;
 		}	
-		
-//		@Override
-//		public boolean onTouchEvent(MotionEvent event, MapView mapView) {
-//			
-//			Log.d(LCAT, "TitaniumOverlayPolygon:onTouchEvent - Start");			
-//			AnnotationProxy foundItem = getHitMapLocation(mapView,event);
-//			
-//			boolean handled = false;
-//			
-//			if (foundItem !=null) {				
-//				// Just for debugging
-//				TiDict props = foundItem.getDynamicProperties();
-//				Log.d(LCAT, "TitaniumOverlayPolygon:onTouchEvent - Item Found: " + props.getString("title"));
-//				
-//				// We found something - so find the index so we can bubble the onTap
-//				int index = super.annotations.indexOf(foundItem);
-//				
-//				// Bubble up the event to the listener
-//				handled = super.listener.onTap(this,index);
-//				mapView.invalidate();
-//				return handled;
-//			} else {
-//				Log.d(LCAT, "TitaniumOverlayPolygon:onTouchEvent - No Item Found!");
-//				return false;
-//			}
-//		}
-		
+
 		private AnnotationProxy getHitMapLocation(MapView mapView, MotionEvent event) {
 
 			// Track which MapLocation was hit…if any
@@ -474,7 +432,42 @@ public class TiMapView extends TiUIView
 				Log.w(LCAT, "Skipping annotation: No coordinates #" + i);
 			}
 			return item;
-		}		
+		}
+		
+		private Path buildPath(TiDict data) {
+			
+	        Path shapePath = new Path();			
+			// Grab the actual data
+	        
+	        
+	        
+			Object[] dataPoints = (Object [])data.get("data");
+			
+			// Build the path
+			for(int j = 0; j < dataPoints.length; j++) {
+				
+				TiDict dataPoint = (TiDict) dataPoints[j];
+		        GeoPoint gp1 = new GeoPoint(scaleToGoogle(dataPoint.getDouble("latitude")), scaleToGoogle(dataPoint.getDouble("longitude")));
+		        Point p1 = new Point();
+		        view.getProjection().toPixels(gp1, p1);
+		        if (j == 0) {
+		        	// The first item we move to - currently we're not using the initial lat/long from the Annotation
+			        shapePath.moveTo(p1.x, p1.y);
+		        } else {
+			        shapePath.lineTo(p1.x, p1.y);
+		        }
+			}
+			
+			// Auto close the shape?
+			boolean shouldComplete = data.optBoolean("complete", completeDefault);
+			
+			if (shouldComplete) {
+				shapePath.close();
+			} 
+			
+			return shapePath;
+		}
+		
 		
 		@Override
 		public void draw(android.graphics.Canvas canvas, MapView mapView, boolean shadow) {
@@ -486,36 +479,37 @@ public class TiMapView extends TiUIView
 					AnnotationProxy thisItem = super.annotations.get(i);
 					
 					TiDict props = thisItem.getDynamicProperties();
-			        Path shapePath = new Path();
+			        //Path shapePath = new Path();
 					
 					if (props.containsKey("points")) {
 						TiDict itemAttributes = props.getTiDict("points");
-						if (itemAttributes.containsKey("data")) {
-							
-							// Grab the actual data
-							Object[] dataPoints = (Object [])itemAttributes.get("data");
-							
-							// Build the path
-							for(int j = 0; j < dataPoints.length; j++) {
-								
-								TiDict dataPoint = (TiDict) dataPoints[j];
-						        GeoPoint gp1 = new GeoPoint(scaleToGoogle(dataPoint.getDouble("latitude")), scaleToGoogle(dataPoint.getDouble("longitude")));
-						        Point p1 = new Point();
-						        view.getProjection().toPixels(gp1, p1);
-						        if (j == 0) {
-						        	// The first item we move to - currently we're not using the initial lat/long from the Annotation
-							        shapePath.moveTo(p1.x, p1.y);
-						        } else {
-							        shapePath.lineTo(p1.x, p1.y);
-						        }
-							}
-							
-							// Auto close the shape?
-							boolean shouldComplete = itemAttributes.optBoolean("complete", completeDefault);
-							
-							if (shouldComplete) {
-								shapePath.close();
-							} 
+						Path shapePath = buildPath(itemAttributes);
+//						if (itemAttributes.containsKey("data")) {
+//							
+//							// Grab the actual data
+//							Object[] dataPoints = (Object [])itemAttributes.get("data");
+//							
+//							// Build the path
+//							for(int j = 0; j < dataPoints.length; j++) {
+//								
+//								TiDict dataPoint = (TiDict) dataPoints[j];
+//						        GeoPoint gp1 = new GeoPoint(scaleToGoogle(dataPoint.getDouble("latitude")), scaleToGoogle(dataPoint.getDouble("longitude")));
+//						        Point p1 = new Point();
+//						        view.getProjection().toPixels(gp1, p1);
+//						        if (j == 0) {
+//						        	// The first item we move to - currently we're not using the initial lat/long from the Annotation
+//							        shapePath.moveTo(p1.x, p1.y);
+//						        } else {
+//							        shapePath.lineTo(p1.x, p1.y);
+//						        }
+//							}
+//							
+//							// Auto close the shape?
+//							boolean shouldComplete = itemAttributes.optBoolean("complete", completeDefault);
+//							
+//							if (shouldComplete) {
+//								shapePath.close();
+//							} 
 							
 					        RectF bounds = new RectF();
 					        shapePath.computeBounds(bounds, true);
@@ -573,7 +567,7 @@ public class TiMapView extends TiUIView
 					        
 					        canvas.drawPath(shapePath, mPaint);	
 							
-						}	
+//						}	
 					}					
 				}
 			}
@@ -985,7 +979,16 @@ public class TiMapView extends TiUIView
 	public TiDict getLayers() {
 		
 		TiDict data = new TiDict();
-		data.put("layers", TiConvert.toStringArray(overlays.keySet().toArray()));
+		
+		String[] vLayers = new String[overlays.keySet().size()];
+		Object[] layerSet = overlays.keySet().toArray();
+		
+		for (int i = 0; i <  layerSet.length; i++) {
+			vLayers[i] = (String) layerSet[i];			
+		}
+		//TiDict.fromJSON(value)
+		//data.put("layers", vLayers);
+		TiConvert.putInTiDict(data, "layers", vLayers);
 		
 		return data;
 	}
