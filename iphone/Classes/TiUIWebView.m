@@ -158,14 +158,14 @@ NSString * const kTitaniumJavascript = @"Ti.App={};Ti.API={};Ti.App._listeners={
 	{
 		path = [path substringFromIndex:1];
 	}
-	return [NSURL URLWithString:[NSString stringWithFormat:@"app://%@/%@",TI_APPLICATION_ID,path]];
+	return [NSURL URLWithString:[[NSString stringWithFormat:@"app://%@/%@",TI_APPLICATION_ID,path] stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
 }
 
 -(NSString*)titaniumInjection
 {
 	NSMutableString *html = [[[NSMutableString alloc] init] autorelease];
 	[html appendString:@"<script id='__ti_injection'>"];
-	NSString *ti = [NSString stringWithFormat:@"%@%s",@"Ti","anium"];
+	NSString *ti = [NSString stringWithFormat:@"%@%s",@"Ti","tanium"];
 	[html appendFormat:@"window.%@={};window.Ti=%@;Ti.pageToken=%@;Ti.appId='%@';",ti,ti,pageToken,TI_APPLICATION_ID];
 	[html appendString:kTitaniumJavascript];
 	[html appendString:@"</script>"];
@@ -458,7 +458,7 @@ NSString * const kTitaniumJavascript = @"Ti.App={};Ti.API={};Ti.App._listeners={
 					NSLog(@"[WARN] I have no idea what the appropriate text encoding is for: %@. Please report this to Appcelerator support.",url);
 				}
 			}
-			if ((error!=nil && [error code]==261) || [mimeType isEqualToString:svgMimeType])
+			if ((error!=nil && [error code]==261) || [mimeType isEqualToString:(NSString*)svgMimeType])
 			{//TODO: Shouldn't we be checking for an HTML mime type before trying to read? This is right now rather inefficient, but it
 			//Gets the job done, with minimal reliance on extensions.
 				// this is a different encoding than specified, just send it to the webview to load
@@ -548,6 +548,23 @@ NSString * const kTitaniumJavascript = @"Ti.App={};Ti.API={};Ti.App._listeners={
 		TiBlob *blob = [args objectAtIndex:1];
 		[blob setData:[result dataUsingEncoding:NSUTF8StringEncoding]];
 	}
+}
+
+-(void)_evalJSOnThread:(NSArray*)args
+{
+	// this happens from evalJSAndWait to put us on the main thread
+	NSString *code = [args objectAtIndex:0];
+	NSMutableString *result = [args objectAtIndex:1];
+	NSString *r = [[self webview] stringByEvaluatingJavaScriptFromString:code];
+	[result appendString:r];
+}
+
+-(id)evalJSAndWait:(NSString *)code
+{
+	NSMutableString *result = [NSMutableString string];
+	NSArray *args = [NSArray arrayWithObjects:code,result,nil];
+	[self performSelectorOnMainThread:@selector(_evalJSOnThread:) withObject:args waitUntilDone:YES];
+	return result;
 }
 
 // Webview appears to have an interesting quirk where the web content is always scaled/sized to just barely

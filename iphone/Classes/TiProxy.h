@@ -106,7 +106,8 @@ void DoProxyDelegateReadValuesWithKeysFromProxy(UIView<TiProxyDelegate> * target
 
 #pragma mark Public 
 -(id<NSFastEnumeration>)allKeys;
--(void)setValuesForKeysWithDictionary:(NSDictionary *)keyedValues usingKeys:(id<NSFastEnumeration>)keys;
+-(NSArray *)keySequence;
+
 +(void)throwException:(NSString *) reason subreason:(NSString*)subreason location:(NSString *)location;
 -(void)throwException:(NSString *) reason subreason:(NSString*)subreason location:(NSString *)location;
 -(void)addEventListener:(NSArray*)args;

@@ -721,6 +721,14 @@
 	[self _destroy];
 }
 
+-(void)didReceiveMemoryWarning:(NSNotification*)notification
+{
+	// Only release a view if it's not currently attached and we're the only living reference for it
+	if (![self viewAttached] && [[self view] retainCount] == 1) {
+		RELEASE_TO_NIL(view);
+	}
+}
+
 #pragma mark Listener Management
 
 -(BOOL)_hasListeners:(NSString *)type
@@ -755,6 +763,10 @@
 
 -(void)_listenerAdded:(NSString*)type count:(int)count
 {
+	if ([self viewAttached]) {
+		[[self view] updateTouchHandling];
+	}
+	
 	if (self.modelDelegate!=nil && [(NSObject*)self.modelDelegate respondsToSelector:@selector(listenerAdded:count:)])
 	{
 		[self.modelDelegate listenerAdded:type count:count];
@@ -763,6 +775,10 @@
 
 -(void)_listenerRemoved:(NSString*)type count:(int)count
 {
+	if ([self viewAttached]) {
+		[[self view] updateTouchHandling];
+	}
+	
 	if (self.modelDelegate!=nil && [(NSObject*)self.modelDelegate respondsToSelector:@selector(listenerRemoved:count:)])
 	{
 		[self.modelDelegate listenerRemoved:type count:count];
