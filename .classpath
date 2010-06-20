@@ -36,12 +36,12 @@
 	<classpathentry kind="lib" path="demos/ApiCheck/build/android/lib/titanium.jar"/>
 	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/platforms/android-8/android.jar"/>
 	<classpathentry kind="lib" path="/usr/local/android-sdk-linux/add-ons/google_apis-8_r01/libs/maps.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="android/modules/admob/lib/admob-sdk-android.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="file:/home/dasher/development/admob-javadoc/"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="android/modules/zendesk/lib/zendesk.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/java-6-sun-1.6.0.20"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
