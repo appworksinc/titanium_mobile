@@ -113,6 +113,48 @@ void MyUncaughtExceptionHandler(NSException *exception)
 	return launchOptions;
 }
 
+- (UIImage*)loadAppropriateSplash
+{
+	UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+	
+	if ([TiUtils isIPad]) {
+		UIImage* image = nil;
+		// Specific orientation check
+		switch (orientation) {
+			case UIDeviceOrientationPortrait:
+				image = [UIImage imageNamed:@"Default-Portrait.png"];
+				break;
+			case UIDeviceOrientationPortraitUpsideDown:
+				image = [UIImage imageNamed:@"Default-PortraitUpsideDown.png"];
+				break;
+			case UIDeviceOrientationLandscapeLeft:
+				image = [UIImage imageNamed:@"Default-LandscapeLeft.png"];
+				break;
+			case UIDeviceOrientationLandscapeRight:
+				image = [UIImage imageNamed:@"Default-LandscapeRight.png"];
+				break;
+		}
+		if (image != nil) {
+			return image;
+		}
+		
+		// Generic orientation check
+		if (UIDeviceOrientationIsPortrait(orientation)) {
+			image = [UIImage imageNamed:@"Default-Portrait.png"];
+		}
+		else if (UIDeviceOrientationIsLandscape(orientation)) {
+			image = [UIImage imageNamed:@"Default-Landscape.png"];
+		}
+		
+		if (image != nil) {
+			return image;
+		}
+	}
+	
+	// Default 
+	return [UIImage imageNamed:@"Default.png"];
+}
+
 - (UIView*)attachSplash
 {
 	CGFloat splashY = -TI_STATUSBAR_HEIGHT;
@@ -121,10 +163,14 @@ void MyUncaughtExceptionHandler(NSException *exception)
 		splashY = 0;
 	}
 	RELEASE_TO_NIL(loadView);
-	UIScreen *screen = [UIScreen mainScreen];
-	loadView = [[UIImageView alloc] initWithFrame:CGRectMake(0, splashY, screen.bounds.size.width, screen.bounds.size.height)];
-	loadView.image = [UIImage imageNamed:@"Default.png"];
+	CGRect viewFrame = [[UIScreen mainScreen] bounds];
+	BOOL flipLandscape = ([TiUtils isIPad] && UIDeviceOrientationIsLandscape([[UIDevice currentDevice] orientation]));
+	loadView = [[UIImageView alloc] initWithFrame:CGRectMake(0, splashY, 
+															 flipLandscape ? viewFrame.size.height : viewFrame.size.width, 
+															 flipLandscape ? viewFrame.size.width : viewFrame.size.height)];
+	loadView.image = [self loadAppropriateSplash];
 	[controller.view addSubview:loadView];
+	splashAttached = YES;
 	return loadView;
 }
 
@@ -135,20 +181,15 @@ void MyUncaughtExceptionHandler(NSException *exception)
 	networkActivityCount = 0;
 	
 	// attach our main view controller
-	controller = [[TiRootViewController alloc] init];
-	[window addSubview:controller.view];
-	controller.view.backgroundColor = [UIColor clearColor];
-	
-	
-	// create our loading view
 	[self attachSplash];
-	
+	[window addSubview:controller.view];
+
     [window makeKeyAndVisible];
 }
 
 - (BOOL)isSplashVisible
 {
-	return splashDone==NO;
+	return splashAttached;
 }
 
 -(UIView*)splash
@@ -162,11 +203,28 @@ void MyUncaughtExceptionHandler(NSException *exception)
 	// and should only be done once (obviously) - the
 	// caller is responsible for setting up the animation
 	// context before calling this and committing it afterwards
-	if (loadView!=nil && splashDone==NO)
+	if (loadView!=nil && splashAttached)
 	{
-		splashDone = YES;
+		splashAttached = NO;
 		[loadView removeFromSuperview];
 		RELEASE_TO_NIL(loadView);
+	}
+}
+
+-(void)initController
+{
+	sharedApp = self;
+	networkActivity = [[NSLock alloc] init];
+	networkActivityCount = 0;
+	
+	// attach our main view controller
+	controller = [[TiRootViewController alloc] init];
+	
+	// Force view load
+	controller.view.backgroundColor = [UIColor clearColor];
+	
+	if (![TiUtils isiPhoneOS3_2OrGreater]) {
+		[self loadSplash];
 	}
 }
 
@@ -204,7 +262,7 @@ void MyUncaughtExceptionHandler(NSException *exception)
 - (void)applicationDidFinishLaunching:(UIApplication *)application 
 {
 	NSSetUncaughtExceptionHandler(&MyUncaughtExceptionHandler);
-	[self loadSplash];
+	[self initController];
 	[self boot];
 }
 
@@ -216,7 +274,7 @@ void MyUncaughtExceptionHandler(NSException *exception)
 	// nibless window
 	window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
 
-	[self loadSplash];
+	[self initController];
 
 	// get the current remote device UUID if we have one
 	NSString *curKey = [[NSUserDefaults standardUserDefaults] stringForKey:@"APNSRemoteDeviceUUID"];
@@ -368,23 +426,39 @@ void MyUncaughtExceptionHandler(NSException *exception)
 	[controller presentModalViewController:error animated:YES];
 }
 
+-(void)attachModal:(UIViewController*)modalController toController:(UIViewController*)presentingController animated:(BOOL)animated
+{
+	UIViewController * currentModalController = [presentingController modalViewController];
+
+	if (currentModalController == modalController)
+	{
+		NSLog(@"[WARN] Trying to present a modal window that already is a modal window.");
+		return;
+	}
+	if (currentModalController == nil)
+	{
+		[presentingController presentModalViewController:modalController animated:animated];
+		return;
+	}
+	[self attachModal:modalController toController:currentModalController animated:animated];
+}
+
 -(void)showModalController:(UIViewController*)modalController animated:(BOOL)animated
 {
-	UINavigationController *navController = [controller navigationController];
+	UINavigationController *navController = nil; //[(TiRootViewController *)controller focusedViewController];
 	if (navController==nil)
 	{
-//TODO: Fix me!
-//		navController = [controller currentNavController];
+		navController = [controller navigationController];
 	}
 	// if we have a nav controller, use him, otherwise use our root controller
 	[controller windowFocused:modalController];
 	if (navController!=nil)
 	{
-		[navController presentModalViewController:modalController animated:animated];
+		[self attachModal:modalController toController:navController animated:animated];
 	}
 	else
 	{
-		[controller presentModalViewController:modalController animated:animated];
+		[self attachModal:modalController toController:controller animated:animated];
 	}
 }
 

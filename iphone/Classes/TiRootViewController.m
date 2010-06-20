@@ -10,6 +10,7 @@
 #import "TiViewProxy.h"
 #import "TiWindowProxy.h"
 #import "TiTab.h"
+#import "TiApp.h"
 #import <MessageUI/MessageUI.h>
 
 @interface TiRootView : UIView
@@ -107,6 +108,10 @@
 	if (lastOrientation == 0)
 	{ //This is when the application first starts. statusBarOrientation lies at the beginning,
 	//And device orientation is 0 until this notification.
+		// FIRST!  We know the orientation now, so attach the splash!
+		if (![[TiApp app] isSplashVisible]) {
+			[[TiApp app] loadSplash];
+		}
 		[self willAnimateRotationToInterfaceOrientation:newOrientation duration:0];
 		return;
 	}
@@ -444,5 +449,9 @@
 	
 }
 
+-(UIViewController *)focusedViewController
+{
+	return [windowViewControllers lastObject];
+}
 
 @end
