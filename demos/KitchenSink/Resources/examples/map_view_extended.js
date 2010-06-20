@@ -1,49 +1,11 @@
-- namespace
+var win = Titanium.UI.currentWindow;
 
-Titanium.Map.Annotation
-
-- type
-
-object
-
-- subtype
-
-proxy
-
-- description
-
-An Annotation object that is created by the method `Titanium.Map.createAnnotation`. This object gives you low level control over annotations that can be added to a Map View.
-
-- since
-
-0.9
-
-- platforms
-
-android, iphone, ipad
-
-- properties
-
-title[string]: the primary title of the annotation view
-subtitle[string]: the secondary title of the annotation view
-pincolor[int]: the color of the pin - supports #ARGB, #AARRGGBB, #RGB, #RRGGBB & Color Constants (`Titanium.Map.ANNOTATION_RED`, `Titanium.Map.ANNOTATION_GREEN` or `Titanium.Map.ANNOTATION_PURPLE`).
-pinImage[string]: The path to the pinImage (Android only)
-animate[boolean]: boolean to indicate whether the pin should animate when dropped
-leftButton[int,string]: the left button image on the annotation. must either be a button type constant or url
-rightButton[int,string]: the right button image on the annotation. must either be a button type constant or url
-leftView[object]: a left view that is displayed on the annotation
-rightView[object]: a right view that is displayed on the annotation
-layarType[int]: Either Titanium.Map.MAP_LAYAR_TYPE_DEFAULT or MAP_LAYAR_TYPE_POLYGON indicating that the annotation should be a polygon or a standard annotation
-layarName[string]: The name of the layer that this annotation should be attached to
-points[object]: If, and only if, this is a polygon, the data for the polygon 
-
-A Standard annotation:
-~~~
+//41.381574, 2.18536
 var poiOne = Titanium.Map.createAnnotation({
     latitude:41.381574,
     longitude:2.18536,
     title:"Hola Buonita",
-    subtitle:'Crucial Divide's Office party!',
+    subtitle:'Saturday Night Parties in Barcelona',
     pincolor:"#08FF00F0",  // Supports #ARGB, #AARRGGBB, #RGB, #RRGGBB & Color Constants (Titanium.Map.ANNOTATION_GREEN, etc)
     animate:true,
     leftButton: 'app://images/KS_nav_views.png',
@@ -51,15 +13,12 @@ var poiOne = Titanium.Map.createAnnotation({
     layarName: "default", // Optional - if not passed it'll default to default or default-poly
     layarType: Titanium.Map.MAP_LAYAR_TYPE_DEFAULT // Titanium.Map.MAP_LAYAR_TYPE_DEFAULT & MAP_LAYAR_TYPE_POLYGON 
 });
-~~~
 
-An annotation that's a polygon:
-~~~
 var polyOne = Titanium.Map.createAnnotation({
     latitude:41.381083,
     longitude:2.18185,
     title:"PolyOne",
-    subtitle:'Office of Crucial Divide',
+    subtitle:'Extended Polygon',
     animate:false,
     leftButton: 'app://buttons/medium-green-round-building.png',
     myid:11, 
@@ -85,4 +44,42 @@ var polyOne = Titanium.Map.createAnnotation({
     layarType: Titanium.Map.MAP_LAYAR_TYPE_POLYGON,  // This is a polygon
     layarName: "poly"								 // Give it a friendly name
 })
-~~~
+
+var polyTwo = Titanium.Map.createAnnotation({
+    latitude:41.380133,
+    longitude:2.18962,
+    title:"Index",
+    subtitle:'IndexVentures - Sector 32',
+    animate:false,
+    leftButton: 'app://buttons/medium-green-round-building.png',
+    myid:10, 
+    points: {
+		data:[
+		      {longitude:2.18962,latitude:41.380133},
+		      {longitude:2.18905,latitude:41.381743},
+		      {longitude:2.19134,latitude:41.382267},
+		      {longitude:2.19198,latitude:41.380624},
+		     ],
+		lineColor: "#ff669900",
+		lineWidth: 1,
+		antiAlias: true,
+		fillColor: "#80669900",
+		complete: true
+	},
+    layarType: Titanium.Map.MAP_LAYAR_TYPE_POLYGON,
+    layarName: "poly"
+});
+
+//
+// CREATE MAP VIEW
+//
+var mapview = Titanium.Map.createView({
+	mapType: Titanium.Map.STANDARD_TYPE,
+	region:{latitude:41.381574, longitude:2.18536, latitudeDelta:0.5, longitudeDelta:0.5},
+	animate:true,
+	regionFit:true,
+	userLocation:true,
+	annotations:[poiOne, polyOne, polyTwo]
+});
+
+win.add(mapview);

@@ -251,36 +251,7 @@ public class TiMapView extends TiUIView
 					item.setMarker(marker);
 				} else if (a.containsKey("pincolor")) {
 					// Pushed the conversion to it's own function to allow reuse
-
 					item.setMarker(makeMarker(toColor(a.get("pincolor"))));					
-//					Object value = a.get("pincolor");
-//					item.setMarker(makeMarker(toColor(value)));							
-					
-//					try {
-//						if (value instanceof String) {							
-//							// Supported strings: Supported formats are: 
-//							//     #RRGGBB #AARRGGBB 'red', 'blue', 'green', 'black', 'white', 'gray', 'cyan', 'magenta', 'yellow', 'lightgray', 'darkgray'
-//							int markerColor = TiConvert.toColor((String) value);
-//							item.setMarker(makeMarker(toColor(value)));							
-//						} else {
-//							// Assume it's a numeric
-//							switch(a.getInt("pincolor")) {
-//								case 1 : // RED
-//									item.setMarker(makeMarker(Color.RED));
-//									break;
-//								case 2 : // GRE
-//									item.setMarker(makeMarker(Color.GREEN));
-//									break;
-//								case 3 : // PURPLE
-//									item.setMarker(makeMarker(Color.argb(255,192,0,192)));
-//								break;
-//								
-//							}						
-//						}										
-//					} catch (Exception e) {
-//						// May as well catch all errors 
-//						Log.w(LCAT, "Unable to parse color [" + a.getString("pincolor")+"] for item ["+i+"]");							
-//					}
 				}
 
 				if (a.containsKey("leftButton")) {
@@ -434,13 +405,16 @@ public class TiMapView extends TiUIView
 			return item;
 		}
 		
+		/**
+		 * Builds & returns the polygon shape
+		 * @param data TiDict The data for the annotation
+		 * @return Path The polygon Shape
+		 */
 		private Path buildPath(TiDict data) {
 			
-	        Path shapePath = new Path();			
-			// Grab the actual data
+	        Path shapePath = new Path();
 	        
-	        
-	        
+			// Grab the actual data	        
 			Object[] dataPoints = (Object [])data.get("data");
 			
 			// Build the path
@@ -484,32 +458,6 @@ public class TiMapView extends TiUIView
 					if (props.containsKey("points")) {
 						TiDict itemAttributes = props.getTiDict("points");
 						Path shapePath = buildPath(itemAttributes);
-//						if (itemAttributes.containsKey("data")) {
-//							
-//							// Grab the actual data
-//							Object[] dataPoints = (Object [])itemAttributes.get("data");
-//							
-//							// Build the path
-//							for(int j = 0; j < dataPoints.length; j++) {
-//								
-//								TiDict dataPoint = (TiDict) dataPoints[j];
-//						        GeoPoint gp1 = new GeoPoint(scaleToGoogle(dataPoint.getDouble("latitude")), scaleToGoogle(dataPoint.getDouble("longitude")));
-//						        Point p1 = new Point();
-//						        view.getProjection().toPixels(gp1, p1);
-//						        if (j == 0) {
-//						        	// The first item we move to - currently we're not using the initial lat/long from the Annotation
-//							        shapePath.moveTo(p1.x, p1.y);
-//						        } else {
-//							        shapePath.lineTo(p1.x, p1.y);
-//						        }
-//							}
-//							
-//							// Auto close the shape?
-//							boolean shouldComplete = itemAttributes.optBoolean("complete", completeDefault);
-//							
-//							if (shouldComplete) {
-//								shapePath.close();
-//							} 
 							
 					        RectF bounds = new RectF();
 					        shapePath.computeBounds(bounds, true);
@@ -1076,8 +1024,22 @@ public class TiMapView extends TiUIView
 						AnnotationProxy thisItem = annotations.get(i);						
 						TiDict props = thisItem.getDynamicProperties();
 						
-						String layerName = props.optString("layarName", "default").toLowerCase();
-						Integer layarType = props.optInt("layarType", TiMapView.MAP_LAYAR_TYPE_DEFAULT);
+						String defaultName = "default";
+						Integer defaultLayarType = TiMapView.MAP_LAYAR_TYPE_DEFAULT;
+						
+						if (props.containsKey("points")) {
+							defaultName = "default-poly";
+							defaultLayarType = TiMapView.MAP_LAYAR_TYPE_POLYGON;
+						}
+						
+						String layerName = props.optString("layarName", defaultName).toLowerCase();
+						Integer layarType = props.optInt("layarType", defaultLayarType);
+						
+						if (props.containsKey("points") && layarType == TiMapView.MAP_LAYAR_TYPE_DEFAULT) {
+							// Houston - we have a problem
+							Log.d(LCAT, "Invalid Annotation - Annotation type set to MAP_LAYAR_TYPE_DEFAULT but annotation has points defined.");
+							continue;
+						}
 						
 						// TODO: Implement named layers
 						// This probably needs to be done a little smarter 

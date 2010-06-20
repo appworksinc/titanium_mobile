@@ -70,6 +70,7 @@ regionFit[boolean]: boolean to indicate if the map should attempt to fit the map
 userLocation[boolean]: boolean to indicate if the map should show the user's current device location as a pin on the map
 location[object]: a dictionary that specifies the following properties specifying the region location to set the map: `latitudeDelta`, `longitudeDelta`, `latitude`, `longitude`.
 annotations[array]: an array of annotations to add to the map
+hideLayers[array]: an array of layer names to hide.  This will hide but not remove the annotations - allowing you to turn "on" or "off" a set of annotations at once. 
 
 - events
 
