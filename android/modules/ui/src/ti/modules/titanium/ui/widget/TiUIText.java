@@ -257,11 +257,11 @@ public class TiUIText extends TiUIView
 		}
 
 		if (verticalAlign != null) {
-			if ("top".equals(textAlign)) {
+			if ("top".equals(verticalAlign)) {
 				valign = Gravity.TOP;
-			} else if ("middle".equals(textAlign)) {
+			} else if ("middle".equals(verticalAlign)) {
 				valign = Gravity.CENTER_VERTICAL;
-			} else if ("bottom".equals(textAlign)) {
+			} else if ("bottom".equals(verticalAlign)) {
 				valign = Gravity.BOTTOM;
 			} else {
 				Log.w(LCAT, "Unsupported alignment: " + verticalAlign);
