@@ -84,6 +84,12 @@ public class TiDict
 		return defalt;
 	}
 
+	public Integer optInt(String key, Integer defaultValue) {
+		if (containsKey(key)) {
+			return getInt(key);
+		}
+		return defaultValue;		
+	}
 	public Integer getInt(String key) {
 		return TiConvert.toInt(get(key));
 	}

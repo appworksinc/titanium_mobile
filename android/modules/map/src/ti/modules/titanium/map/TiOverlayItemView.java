@@ -37,6 +37,7 @@ public class TiOverlayItemView extends FrameLayout
 	private TextView title;
 	private TextView snippet;
 	private int lastIndex;
+	private TiOverlayItem lastItem;
 	private View[] hitTestList;
 
 	private OnOverlayClicked overlayClickedListener;
@@ -46,6 +47,7 @@ public class TiOverlayItemView extends FrameLayout
 		super(context);
 
 		lastIndex = -1;
+		lastItem = null;
 
 		setPadding(0, 0, 0, 10);
 
@@ -134,6 +136,7 @@ public class TiOverlayItemView extends FrameLayout
 		Drawable d = null;
 
 		lastIndex = index;
+		lastItem = item;
 
 		if(item.getLeftButton() != null) {
 			try {
@@ -206,8 +209,18 @@ public class TiOverlayItemView extends FrameLayout
 
 	public void clearLastIndex() {
 		lastIndex = -1;
+		lastItem = null;
 	}
 	public int getLastIndex() {
 		return lastIndex;
+	}
+	
+	/**
+	 * Returns the last item used as the source of the popup view
+	 * @return TiOverlayItem
+	 */
+	public TiOverlayItem getLastItem() {
+		// This is needed as we don't have a unique index with multiple layers
+		return lastItem;
 	}
 }
