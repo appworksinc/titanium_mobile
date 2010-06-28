@@ -33,18 +33,6 @@ removeAnnotation: remove an existing annotation from the map
 removeAnnotations: remove one or more existing annotations from the map
 removeAllAnnotations: removes all annotations added to the map
 
-# 1.4
-addRoute: add a route. currently only supported on iphone
-removeRoute: remove a previously added route. currently only supported on iphone
-
-- method : addRoute
-
-route[object]: dictionary with the properties: `name` route name, `points` dictionary of values with longitude and latitude keys, `color` for the line color and `width` for the line width.  
-
-- method : removeRoute
-
-route[object]: same route object used during addRoute
-
 - method : addAnnotation
 
 annotation[object]: either a dictionary of properties for the annotation or a [Titanium.Map.Annotation](Titanium.Map.Annotation) instance.
@@ -82,6 +70,7 @@ regionFit[boolean]: boolean to indicate if the map should attempt to fit the map
 userLocation[boolean]: boolean to indicate if the map should show the user's current device location as a pin on the map
 location[object]: a dictionary that specifies the following properties specifying the region location to set the map: `latitudeDelta`, `longitudeDelta`, `latitude`, `longitude`.
 annotations[array]: an array of annotations to add to the map
+hideLayers[array]: an array of layer names to hide.  This will hide but not remove the annotations - allowing you to turn "on" or "off" a set of annotations at once. 
 
 - events
 
