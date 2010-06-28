@@ -2,6 +2,9 @@
 dist
 bin
 bin/*
+.classpath
+.settings
+.settings/
 .project
 .sconsign.dblite
 .DS_Store
