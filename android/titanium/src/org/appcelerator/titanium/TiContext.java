@@ -647,9 +647,14 @@ public class TiContext implements TiEvaluator, ITiMenuDispatcherListener, ErrorR
 	}
 	public void dispatchOnConfigurationChanged(Configuration newConfig)
 	{
+		Log.d(LCAT, "dispatchOnConfigurationChanged started");
+
 		if (weakConfigurationChangedListeners != null) {
+			Log.d(LCAT, "!Null (weakConfigurationChangedListeners) - dispatchOnConfigurationChanged");
+			
 			OnConfigurationChanged listener = weakConfigurationChangedListeners.get();
 			if (listener != null) {
+				Log.d(LCAT, "!Null (listener) - dispatchOnConfigurationChanged");
 				listener.configurationChanged(newConfig);
 			}
 		}

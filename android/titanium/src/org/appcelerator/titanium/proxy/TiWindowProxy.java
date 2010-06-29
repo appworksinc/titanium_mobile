@@ -10,6 +10,7 @@ import org.appcelerator.titanium.TiContext;
 import org.appcelerator.titanium.TiDict;
 import org.appcelerator.titanium.TiProxy;
 import org.appcelerator.titanium.util.AsyncResult;
+import org.appcelerator.titanium.util.Log;
 import org.appcelerator.titanium.util.TiConfig;
 import org.appcelerator.titanium.util.TiUIHelper;
 import org.appcelerator.titanium.view.TiAnimation;
@@ -68,6 +69,7 @@ public abstract class TiWindowProxy extends TiViewProxy
 				return true;
 			}
 			default : {
+				Log.i(LCAT, "Message Received: "+msg.what);	
 				return super.handleMessage(msg);
 			}
 		}

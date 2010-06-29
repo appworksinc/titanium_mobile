@@ -19,6 +19,8 @@ import org.appcelerator.titanium.util.TiUIHelper;
 import org.appcelerator.titanium.view.TiUIView;
 import org.json.JSONObject;
 
+import ti.modules.titanium.ui.TiUIWindow;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Message;
@@ -71,6 +73,7 @@ public class WindowProxy extends TiWindowProxy
 				return true;
 			}
 			default : {
+				Log.i(LCAT, "Message Received: "+msg.what);	
 				return super.handleMessage(msg);
 			}
 		}

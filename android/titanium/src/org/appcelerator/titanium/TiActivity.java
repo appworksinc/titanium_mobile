@@ -243,10 +243,14 @@ public class TiActivity extends Activity
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
+		Log.d(LCAT, "onConfigurationChanged started");
 		super.onConfigurationChanged(newConfig);
 
 		for (WeakReference<TiContext> contextRef : contexts) {
+			Log.d(LCAT, "onConfigurationChanged foreach");
+
 			if (contextRef.get() != null) {
+				Log.d(LCAT, "onConfigurationChanged foreach !Null");
 				contextRef.get().dispatchOnConfigurationChanged(newConfig);
 			}
 		}

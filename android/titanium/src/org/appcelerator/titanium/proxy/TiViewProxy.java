@@ -159,6 +159,9 @@ public abstract class TiViewProxy extends TiProxy implements Handler.Callback
 				result.setResult(d);
 				return true;
 			}
+		  default: {
+			  Log.i(LCAT, "Message Received: "+msg.what);	
+		  }
 		}
 		return super.handleMessage(msg);
 	}

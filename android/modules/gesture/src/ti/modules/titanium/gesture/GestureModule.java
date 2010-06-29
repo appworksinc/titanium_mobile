@@ -11,6 +11,7 @@ import org.appcelerator.titanium.TiDict;
 import org.appcelerator.titanium.TiModule;
 import org.appcelerator.titanium.TiProxy;
 import org.appcelerator.titanium.TiContext.OnConfigurationChanged;
+import org.appcelerator.titanium.util.Log;
 
 import ti.modules.titanium.ui.UIModule;
 
@@ -20,6 +21,7 @@ public class GestureModule extends TiModule
 	implements OnConfigurationChanged
 {
 	public static final String EVENT_ONCONFIGCHANGE = "orientationchange";
+	private static final String LCAT = "GestureModule";
 
 	protected boolean listeningForOrientation;
 
@@ -58,6 +60,7 @@ public class GestureModule extends TiModule
 	@Override
 	public void configurationChanged(Configuration newConfig)
 	{
+		Log.i(LCAT, "ConfigChanged Fired");
 		TiDict data = new TiDict();
 		data.put("orientation", convertToTiOrientation(newConfig.orientation));
 		fireEvent(EVENT_ONCONFIGCHANGE, data);

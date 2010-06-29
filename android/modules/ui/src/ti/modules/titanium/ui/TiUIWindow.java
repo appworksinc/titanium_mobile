@@ -16,6 +16,7 @@ import org.appcelerator.titanium.TiActivity;
 import org.appcelerator.titanium.TiContext;
 import org.appcelerator.titanium.TiDict;
 import org.appcelerator.titanium.TiProxy;
+import org.appcelerator.titanium.TiContext.OnConfigurationChanged;
 import org.appcelerator.titanium.proxy.TiViewProxy;
 import org.appcelerator.titanium.proxy.TiWindowProxy;
 import org.appcelerator.titanium.util.Log;
@@ -30,12 +31,15 @@ import org.appcelerator.titanium.view.TiUIView;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.view.OrientationListener;
 import android.view.View;
 import android.view.Window;
 import android.view.View.OnFocusChangeListener;
@@ -68,6 +72,9 @@ public class TiUIWindow extends TiUIView
 
 	protected int lastWidth;
 	protected int lastHeight;
+	
+	protected Integer[] orientationModes;
+	
 	private WeakReference<TiContext> createdContext;
 
 	private static AtomicInteger idGenerator;
@@ -263,7 +270,7 @@ public class TiUIWindow extends TiUIView
 						if (!lightWeight && windowActivity instanceof TiActivity) {
 							TiActivity tiActivity = (TiActivity)windowActivity;
 							tiActivity.setCreatedContext(createdContext.get());
-							tiActivity.setWindowProxy((TiWindowProxy)proxy);
+							tiActivity.setWindowProxy((TiWindowProxy)proxy);							
 						}
 						Messenger m = new Messenger(handler);
 						ftiContext.evalFile(furl, m, MSG_BOOTED);
@@ -297,6 +304,49 @@ public class TiUIWindow extends TiUIView
 				messenger = null;
 			}
 		}
+		
+//		createdContext.get().setOnConfigurationChangedListener(new OnConfigurationChanged() {								
+//			@Override
+//			public void configurationChanged(Configuration newConfig) {
+//				// TODO Auto-generated method stub
+//				Log.d(LCAT, "[CreatedContext] Window ConfigChanged to ["+newConfig.orientation+"]");
+//				switch(newConfig.orientation) {
+//				case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:
+//					// Do nothing					
+//				break;
+//				default:
+//					if (createdContext != null) {
+//						createdContext.get().getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+//					} else {
+//						
+//					}
+//				break;
+//					
+//				}
+//			}
+//		});			
+		
+		proxy.getTiContext().setOnConfigurationChangedListener(new OnConfigurationChanged() {								
+			@Override
+			public void configurationChanged(Configuration newConfig) {
+				// TODO Auto-generated method stub
+				Log.d(LCAT, "Window ConfigChanged to ["+newConfig.orientation+"]");
+				switch(newConfig.orientation) {
+				case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:
+					// Do nothing					
+				break;
+				default:
+					if (createdContext != null) {
+						proxy.getTiContext().getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+					} else {
+						
+					}
+				break;
+					
+				}
+			}
+		});			
+		
 		if (lightWeight) {
 			ITiWindowHandler windowHandler = proxy.getTiContext().getTiApp().getWindowHandler();
 			if (windowHandler != null) {
@@ -368,6 +418,9 @@ public class TiUIWindow extends TiUIView
 				handleBooted();
 				return true;
 			}
+			default: {
+				Log.i(LCAT, "Message Received: "+msg.what);				
+			}
 		}
 		return false;
 	}
@@ -434,6 +487,13 @@ public class TiUIWindow extends TiUIView
 		} else if (d.containsKey("title")) {
 			String title = TiConvert.toString(d,"title");
 			proxy.getTiContext().getActivity().setTitle(title);
+		} else if (d.containsKey("orientationModes")) {
+			Object[] passedModes = (Object [])d.get("orientationModes");
+			this.orientationModes  = new Integer[passedModes.length];
+			for (int i = 0; i < passedModes.length; i++) {
+				Integer thisMode = TiConvert.toInt(passedModes[i]);
+				this.orientationModes[i] = thisMode;
+			}
 		}
 
 		// Don't allow default processing.
