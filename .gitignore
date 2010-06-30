@@ -1,5 +1,6 @@
 *.pyc
 dist
+debug.log
 .sconsign.dblite
 .DS_Store
 .externalToolBuilders/

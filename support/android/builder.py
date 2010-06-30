@@ -362,6 +362,7 @@ class Builder(object):
 		CONTACTS_PERMISSION = ['READ_CONTACTS']
 		VIBRATE_PERMISSION = ['VIBRATE']
 		CAMERA_PERMISSION = ['CAMERA']
+                PAYPAL_PERMISSION = ['READ_PHONE_STATE']
 		
 		# this is our module method to permission(s) trigger - for each method on the left, require the permission(s) on the right
 		permission_mapping = {
@@ -383,6 +384,9 @@ class Builder(object):
 			'Contacts.addContact' : CONTACTS_PERMISSION,
 			'Contacts.getAllContacts' : CONTACTS_PERMISSION,
 			'Contacts.showContactPicker' : CONTACTS_PERMISSION,
+
+			# PAYPAL
+			'Paypal.createPaypalButton' : PAYPAL_PERMISSION,
 		}
 		
 		VIDEO_ACTIVITY = """<activity
@@ -402,7 +406,11 @@ class Builder(object):
 		android:name="ti.modules.titanium.facebook.FBActivity"
 		android:theme="@android:style/Theme.Translucent.NoTitleBar"
     />"""
-		
+
+		PAYPAL_ACTIVITY = """<activity android:name="com.paypal.android.MEP.PayPalActivity"
+				  android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        />"""
+
 		activity_mapping = {
 		
 			# MEDIA
@@ -415,6 +423,10 @@ class Builder(object):
 			'Facebook.setup' : FACEBOOK_ACTIVITY,
 			'Facebook.login' : FACEBOOK_ACTIVITY,
 			'Facebook.createLoginButton' : FACEBOOK_ACTIVITY,
+			
+			#Paypal
+			'Paypal.createPaypalButton' : PAYPAL_ACTIVITY,
+
 		}
 		
 		# this is a map of our APIs to ones that require Google APIs to be available on the device
@@ -428,7 +440,7 @@ class Builder(object):
 		for mn in compiler.module_methods:
 			try:
 				perms = permission_mapping[mn]
-				if perms:
+				if perms:
 					for perm in perms: 
 						try:
 							permissions_required.index(perm)
