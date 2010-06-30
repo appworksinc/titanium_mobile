@@ -34,6 +34,7 @@ var ppButton = Titanium.Paypal.createPaypalButton(
 	width:100,
 	top: 10,
 	left: 10,
+	appId: "APP-80W284485P519543T",							 // The appID issued by Paypal for your application - APP-80W284485P519543T is the default Paypal test ID
 	buttonStyle: Titanium.Paypal.BUTTON_68x24,  			 // The style & size of the button
 	paypalEnvironment: Titanium.Paypal.PAYPAL_ENV_SANDBOX,   // Sandbox, None or Live
 	feePaidByReceiver: false, 								 // This will only be applied when the transaction type is Personal

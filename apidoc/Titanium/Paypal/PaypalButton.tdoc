@@ -22,6 +22,24 @@ The PayPal Button created by `Titanium.Paypal.createPaypalButton`.
 
 android
 
+- properties
+
+buttonStyle[integer]: One of the following constants
+paypalEnvironment[integer]: One of the following constants to indicate which env to use, [Titanium.Paypal.PAYPAL_ENV_SANDBOX, 
+feePaidByReceiver[boolean]: Flag indicating is the receiver pays the Paypal fees - only applicable for Personal Transactions 
+transactionType[integer]: One of the following transaction types, [Titanium.Paypal.PAYMENT_TYPE_DONATION,
+payment[object]: The payment object contains details about the specific payment.
+
+- payment
+
+paymentamount[float]: The amount of the payment
+tax[float]: The amount of the payment which is for tax
+shipping[float]: The shipping amount
+currency[string]: The currency of the payment
+recipient[string]: The email address of the person receiving the payment
+itemDescription[string]: A description of the payment
+merchantName[string]: The display name of the person or organisation receiving the payment
+senderEmailOrPhone[string]: The email address or phone number of the person receiving the payment
 
 - methods
 
@@ -42,4 +60,34 @@ errorMessage: The error message
 
 transactionID: The transaction ID of the payment
 
+Example:
+~~~
+var ppButton = Titanium.Paypal.createPaypalButton(
+{
+	// Button Details
+	// Note - you can override the button size as defined by Paypal - but it's not a good idea
+	height:30,
+	width:100,
+	top: 10,
+	left: 10,
+	buttonStyle: Titanium.Paypal.BUTTON_68x24,  			 // The style & size of the button
+	paypalEnvironment: Titanium.Paypal.PAYPAL_ENV_SANDBOX,   // Sandbox, None or Live
+	feePaidByReceiver: false, 								 // This will only be applied when the transaction type is Personal
+	transactionType: Titanium.Paypal.PAYMENT_TYPE_DONATION,	 // The type of payment
+	// The payment itself
+	payment: 
+	{
+		amount: 12.99,
+		tax: 0.00,
+		shipping: 0.00,
+		currency: "USD",
+		recipient: "moneyBags@biz.near.me",
+		itemDescription: "Donation",
+		merchantName: "Dev Tools",
+		senderEmailOrPhone: "joe@spendThrift.com"
+	}
+});
+win.add(ppButton);
+
+~~~
 
