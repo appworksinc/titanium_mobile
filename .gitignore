@@ -2,3 +2,10 @@
 dist
 .sconsign.dblite
 .DS_Store
+.externalToolBuilders/
+.project
+.settings/
+android/.classpath
+android/.project
+android/.settings/
+bin/

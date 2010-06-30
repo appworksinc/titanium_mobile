@@ -175,8 +175,7 @@ public class FacebookModule extends TiModule implements FBActivityDelegate,
 		Intent intent = new Intent(activity, FBActivity.class);
 		intent.setAction("login_dialog");
 		intent.putExtra("uid", resultCode);
-		activitySupport.launchActivityForResult(intent, resultCode,
-				(TiActivityResultHandler) this);
+		activitySupport.launchActivityForResult(intent, resultCode, (TiActivityResultHandler) this);
 	}
 
 	public void logout(KrollCallback callback) {

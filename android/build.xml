@@ -67,6 +67,7 @@
 		<build-module name="geolocation"/>
 		<build-module name="json"/>
 		<build-module name="map"/>
+		<build-module name="paypal"/>
 		<build-module name="platform"/>
 		<build-module name="utils"/>
 		<build-module name="xml"/>
