@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="android"/>
+	<classpathentry kind="lib" path="android/build/lib/ant-launcher.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/ant-nodeps.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/ant.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/xercesImpl.jar"/>
+	<classpathentry kind="lib" path="android/build/lib/xml-apis.jar"/>
+	<classpathentry kind="lib" path="/usr/lib/jvm/java-6-sun-1.6.0.20/jre/lib/rt.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

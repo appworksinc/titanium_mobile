@@ -16,6 +16,7 @@ import org.appcelerator.titanium.TiActivity;
 import org.appcelerator.titanium.TiContext;
 import org.appcelerator.titanium.TiDict;
 import org.appcelerator.titanium.TiProxy;
+import org.appcelerator.titanium.TiContext.OnConfigurationChanged;
 import org.appcelerator.titanium.proxy.TiViewProxy;
 import org.appcelerator.titanium.proxy.TiWindowProxy;
 import org.appcelerator.titanium.util.Log;
@@ -30,6 +31,8 @@ import org.appcelerator.titanium.view.TiUIView;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
@@ -297,6 +300,28 @@ public class TiUIWindow extends TiUIView
 				messenger = null;
 			}
 		}
+		
+		proxy.getTiContext().setOnConfigurationChangedListener(new OnConfigurationChanged() {								
+			@Override
+			public void configurationChanged(Configuration newConfig) {
+				// TODO Auto-generated method stub
+				Log.d(LCAT, "Window ConfigChanged to ["+newConfig.orientation+"]");
+				switch(newConfig.orientation) {
+				case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE:
+					// Do nothing					
+				break;
+				default:
+					if (createdContext != null) {
+						proxy.getTiContext().getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+					} else {
+						
+					}
+				break;
+					
+				}
+			}
+		});	
+		
 		if (lightWeight) {
 			ITiWindowHandler windowHandler = proxy.getTiContext().getTiApp().getWindowHandler();
 			if (windowHandler != null) {

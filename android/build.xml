@@ -59,6 +59,7 @@
 	<target name="build" depends="build-titanium">
 		<build-module name="accelerometer"/>
 		<build-module name="analytics"/>
+		<build-module name="ads"/>
 		<build-module name="app"/>
 		<build-module name="api"/>
 		<build-module name="database"/>
