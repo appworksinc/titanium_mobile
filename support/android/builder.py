@@ -440,7 +440,7 @@ class Builder(object):
 		for mn in compiler.module_methods:
 			try:
 				perms = permission_mapping[mn]
-				if perms:
+				if perms:
 					for perm in perms: 
 						try:
 							permissions_required.index(perm)
