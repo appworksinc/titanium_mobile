@@ -51,6 +51,14 @@
 	[super willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
 }
 
+-(UINavigationItem*)navigationItem
+{
+	if ([self navigationController] != nil) {
+		return [super navigationItem];
+	}
+	return nil;
+}
+
 @end
 
 
@@ -59,7 +67,6 @@
 
 - (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration
 {
-	[self lockChildrenForReading];
 	for (TiViewProxy * thisProxy in [self children])
 	{
 		if ([thisProxy respondsToSelector:@selector(willAnimateRotationToInterfaceOrientation:duration:)])
@@ -67,7 +74,6 @@
 			[(id)thisProxy willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
 		}
 	}
-	[self unlockChildren];
 	//This is in place for TabController (Or any others) to subclass.
 }
 
@@ -79,6 +85,14 @@
 		controller = [[TiWindowViewController alloc] initWithWindow:self];
 	}
 	return controller;
+}
+
+-(void)replaceController
+{
+	if (controller != nil) {
+		RELEASE_TO_NIL(controller);
+		[self controller];
+	}
 }
 
 -(void)_destroy
@@ -132,7 +146,7 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 -(void)windowDidOpen
 {
 	[super windowDidOpen];
-
+	
 	opening = NO;
 
 	if ([self _hasListeners:@"open"])
@@ -145,6 +159,17 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	if (focused==NO && [self handleFocusEvents])
 	{
 		[self fireFocus:YES];
+	}
+
+	if (reattachWindows!=nil)
+	{
+		UIView *rootView = [[TiApp app] controller].view;
+		for (UIView *aview in reattachWindows)
+		{
+			[rootView addSubview:aview];
+			[rootView sendSubviewToBack:aview];
+		}
+		RELEASE_TO_NIL(reattachWindows);
 	}
 }
 
@@ -161,17 +186,11 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	{
 		[self attachViewToTopLevelWindow];
 	}
-	
-	if (reattachWindows!=nil)
-	{
-		UIView *rootView = [[TiApp app] controller].view;
-		for (UIView *aview in reattachWindows)
-		{
-			[rootView addSubview:aview];
-			[rootView sendSubviewToBack:aview];
-		}
-		RELEASE_TO_NIL(reattachWindows);
-	}
+}
+
+-(BOOL)closing
+{
+	return closing;
 }
 
 -(void)windowClosed
@@ -182,7 +201,6 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	{
 		return;
 	}
-	
 	opened = NO;
 	attached = NO;
 	opening = NO;
@@ -191,12 +209,10 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	[self detachView];
 	
 	// notify our child that his window is closing
-	[self lockChildrenForReading];
 	for (TiViewProxy *child in self.children)
 	{
 		[child windowDidClose];
 	}
-	[self unlockChildren];
 	
 	[self windowDidClose];
 
@@ -311,7 +327,7 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 -(void)open:(id)args
 {
 	ENSURE_UI_THREAD(open,args);
-	
+
 	// opening a window more than once does nothing
 	if (opened==YES)
 	{
@@ -332,6 +348,7 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	// false to delay for some other action
 	if ([self _handleOpen:args])
 	{
+		
 		// ensure on open that we've created our view before we start to use it
 		[self view];
 		[self windowWillOpen];
@@ -444,7 +461,6 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	self.navController = navController_;
 	navWindow = YES;
 	[self view];
-	[self setupWindowDecorations];
 	if ([self _handleOpen:nil])
 	{
 		[self windowReady];
@@ -467,6 +483,18 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	if (opened==NO)
 	{
 		return;
+	}
+	 
+	if ([self _isChildOfTab]) 
+	{
+		if (![args isKindOfClass:[NSArray class]] ||
+			([args isKindOfClass:[NSArray class]] &&
+			 [args count] > 0 && 
+			 ![TiUtils boolValue:@"closeByTab" properties:[args objectAtIndex:0] def:NO]))
+		{
+			[[self tab] close:[NSArray arrayWithObject:self]];
+			return;
+		}
 	}
 
 	closing=YES;
@@ -522,18 +550,15 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 	}
 	
 	// notify our child that his window is closing
-	[self lockChildrenForReading];
 	for (TiViewProxy *child in self.children)
 	{
 		[child windowWillClose];
 	}
-	[self unlockChildren];
 
 	if ([self _handleClose:args])
 	{
-		TiAnimation *animation = [TiAnimation animationFromArg:args context:[self pageContext] create:NO];
-		BOOL animated = animation==nil && args!=nil && [args count]>0 ? [TiUtils boolValue:@"animated" properties:[args objectAtIndex:0] def:YES] : YES;
-
+		TiAnimation *animation = [self _isChildOfTab] ? nil : [TiAnimation animationFromArg:args context:[self pageContext] create:NO];
+		
 		if (animation!=nil)
 		{
 			if ([animation isTransitionAnimation])
@@ -567,14 +592,14 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 			closeView = [myview retain];
 			[animation animate:self];
 		}
-		
+		  
 		if (fullscreenFlag)
 		{
 			[[UIApplication sharedApplication] setStatusBarHidden:restoreFullscreen];
 			self.view.frame = [[[TiApp app] controller] resizeView];
-		}
-		
-		if (([self _isChildOfTab] && animated) || animation!=nil)
+		} 
+ 
+		if (animation!=nil)
 		{
 			[self performSelector:@selector(windowClosed) withObject:nil afterDelay:0.8];
 		}
@@ -582,7 +607,6 @@ END_UI_THREAD_PROTECTED_VALUE(opened)
 		{
 			[self windowClosed];
 		}
-
 	}	 
 }
 

@@ -42,7 +42,7 @@ NSArray * tableKeySequence;
 	return (TiUITableView*)[self view];
 }
 
--(TiUITableViewRowProxy*)newTableViewRowFromDict:(NSDictionary*)data
+-(TiUITableViewRowProxy*)makeTableViewRowFromDict:(NSDictionary*)data
 {
 	TiUITableViewRowProxy *proxy = [[[TiUITableViewRowProxy alloc] _initWithPageContext:[self executionContext]] autorelease];
 	[proxy _initWithProperties:data];
@@ -55,7 +55,7 @@ NSArray * tableKeySequence;
 	
 	if ([data isKindOfClass:[NSDictionary class]])
 	{
-		row = [self newTableViewRowFromDict:data];
+		row = [self makeTableViewRowFromDict:data];
 	}
 	else if ([data isKindOfClass:[TiUITableViewRowProxy class]])
 	{
@@ -252,7 +252,7 @@ NSArray * tableKeySequence;
 	
 	if ([sections count]==0)
 	{
-		[self throwException:@"no rows found" subreason:nil location:CODELOCATION];
+		NSLog(@"[WARN] no rows found in table, ignoring delete");
 		return;
 	}
 	
@@ -261,7 +261,7 @@ NSArray * tableKeySequence;
 	
 	if (section==nil || row == nil)
 	{
-		[self throwException:@"no row found for index" subreason:nil location:CODELOCATION];
+		NSLog(@"[WARN] no row found for index: %d",index);
 		return;
 	}
 	
@@ -387,14 +387,7 @@ NSArray * tableKeySequence;
 
 -(void)setData:(id)args withObject:(id)properties
 {
-	if (windowOpened==NO)
-	{
-		RELEASE_TO_NIL(pendingData);
-		pendingData = [[NSArray arrayWithObjects:args,properties,nil] retain];
-		return;
-	}
 	ENSURE_TYPE_OR_NIL(args,NSArray);
-	ENSURE_UI_THREAD_WITH_OBJ(setData,args,properties);
 	
 	// this is on the non-UI thread. let's do the work here before we pass
 	// it over to the view which will be on the UI thread
@@ -412,7 +405,7 @@ NSArray * tableKeySequence;
 		if ([row isKindOfClass:dictionaryClass])
 		{
 			NSDictionary *dict = (NSDictionary*)row;
-			TiUITableViewRowProxy *rowProxy = [self newTableViewRowFromDict:dict];
+			TiUITableViewRowProxy *rowProxy = [self makeTableViewRowFromDict:dict];
 			NSString *header = [dict objectForKey:@"header"];
 			if (section == nil || header!=nil)
 			{
@@ -463,9 +456,8 @@ NSArray * tableKeySequence;
 	}
 	
 	[self replaceValue:data forKey:@"data" notification:NO];
-
+	
 	TiUITableViewAction *action = [[[TiUITableViewAction alloc] initWithRow:nil animation:properties section:0 type:TiUITableViewActionSetData] autorelease];
-
 	TiUITableView *table = [self tableView];
 	[table dispatchAction:action];
 }
@@ -492,18 +484,6 @@ NSArray * tableKeySequence;
 		arg2 = [args count] > 1 ? [args objectAtIndex:1] : [NSDictionary dictionary];
 	}
 	[[self view] performSelector:@selector(setContentInsets_:withObject:) withObject:arg1 withObject:arg2];
-}
-
--(void)windowWillOpen
-{
-	[super windowWillOpen];
-	
-	if (pendingData!=nil)
-	{
-		id prop = [pendingData count]>1 ? [pendingData objectAtIndex:1] : nil;
-		[self setData:[pendingData objectAtIndex:0] withObject:prop];
-		RELEASE_TO_NIL(pendingData);
-	}
 }
 
 

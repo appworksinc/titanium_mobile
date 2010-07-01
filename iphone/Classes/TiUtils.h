@@ -174,5 +174,8 @@
 +(BOOL)isIPad;
 
 +(BOOL)isiPhoneOS3_2OrGreater;
++(BOOL)isIOS4OrGreater;
+
++(BOOL)isIPhone4;
 
 @end

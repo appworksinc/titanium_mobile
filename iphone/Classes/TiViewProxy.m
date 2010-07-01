@@ -10,13 +10,14 @@
 #import "TiApp.h"
 #import "TiBlob.h"
 #import "TiRect.h"
+#import "TiLayoutQueue.h"
+
 #import <QuartzCore/QuartzCore.h>
 #import <libkern/OSAtomic.h>
 #import <pthread.h>
 
-#import "TiLayoutQueue.h"
 
-#define IGNORE_IF_NOT_OPENED if (!windowOpened) return;
+#define IGNORE_IF_NOT_OPENED if (!windowOpened||[self viewAttached]==NO) return;
 
 @implementation TiViewProxy
 
@@ -29,16 +30,36 @@
 	self = [super init];
 	if (self != nil)
 	{
-		int error = pthread_rwlock_init(&rwChildrenLock, NULL);
-		if (error != 0)
-		{
-			NSLog(@"[ERROR] View proxy was unable to initialize the readwrite lock: %d",error);
-		}
+		childrenLock = [[NSRecursiveLock alloc] init];
 	}
 	return self;
 }
 
+-(void)childrenAsCopyUIThreadSafe:(NSMutableArray*)fill
+{
+	[fill addObjectsFromArray:children];
+}
 
+-(NSArray*)children
+{
+	if ([NSThread isMainThread])
+	{
+		[childrenLock lock];
+		if (windowOpened==NO && children==nil && pendingAdds!=nil)
+		{
+			NSArray *copy = [pendingAdds mutableCopy];
+			[childrenLock unlock];
+			return [copy autorelease];
+		}
+		[childrenLock unlock];
+		return children;	
+	}
+	
+	// children accessed via non-UI thread must make a safe copy
+	NSMutableArray *arg = [NSMutableArray arrayWithCapacity:1];
+	[self performSelectorOnMainThread:@selector(childrenAsCopyUIThreadSafe:) withObject:arg waitUntilDone:YES];
+	return arg;
+}
 
 - (void) _initWithProperties:(NSDictionary *)properties
 {
@@ -51,12 +72,9 @@
 
 -(void)dealloc
 {
-	if (view!=nil)
-	{
-		view.proxy = nil;
-	}
+	[self _destroy];
+	
 	RELEASE_TO_NIL(barButtonItem);
-	RELEASE_TO_NIL(view);
 	RELEASE_TO_NIL(pendingAdds);
 	
 	//Dealing with children is in _destroy, which is called by super dealloc.
@@ -67,45 +85,6 @@
 -(BOOL)windowOpened
 {
 	return windowOpened;
-}
-
--(void)lockChildrenForReading
-{
-	int error = pthread_rwlock_rdlock(&rwChildrenLock);
-	if (error != 0)
-	{
-		NSLog(@"[ERROR] View proxy readwrite read lock failed: %d",error);
-	}
-}
-
--(void)lockChildrenForWriting
-{
-	int error = pthread_rwlock_wrlock(&rwChildrenLock);
-	if (error != 0)
-	{
-		NSLog(@"[ERROR] View proxy readwrite write lock failed: %d",error);
-	}
-}
-
--(void)unlockChildren
-{
-	int error = pthread_rwlock_unlock(&rwChildrenLock);
-	if (error != 0)
-	{
-		NSLog(@"[ERROR] View proxy readwrite unlock failed: %d",error);
-	}
-}
-
--(id)children
-{
-	// in the case of a pending adds, we still need to support
-	// proxy.children to return the array of children even though
-	// not yet added
-	if (children==nil && pendingAdds!=nil)
-	{
-		return pendingAdds;
-	}
-	return children;
 }
 
 
@@ -121,9 +100,8 @@
 
 -(void)layoutChildOnMainThread:(id)arg
 {
-	IGNORE_IF_NOT_OPENED
-	
 	ENSURE_UI_THREAD(layoutChildOnMainThread,arg);
+	IGNORE_IF_NOT_OPENED
 	[self layoutChild:arg optimize:NO]; 
 }
 
@@ -181,9 +159,6 @@
 
 -(void)add:(id)arg
 {
-	//NOTE: we're not adding this to the UI thread _on_purpose_
-	//for performance... don't change that w/o asking Jeff H
-	
 	// allow either an array of arrays or an array of single proxy
 	if ([arg isKindOfClass:[NSArray class]])
 	{
@@ -194,23 +169,7 @@
 		return;
 	}
 	
-	// if we haven't yet opened our window, delay building the
-	// view hiearchy. this is a _major_ performance gain
-	if (windowOpened==NO)
-	{
-		if (pendingAdds==nil)
-		{
-			pendingAdds = [[NSMutableArray arrayWithObject:arg] retain];
-		}
-		else 
-		{
-			[pendingAdds addObject:arg];
-		}
-		[arg setParent:self];
-		return;
-	}
-
-	[self lockChildrenForWriting];
+	if ([NSThread isMainThread])
 	{
 		if (children==nil)
 		{
@@ -222,34 +181,48 @@
 		}
 		[arg setParent:self];
 		[self childAdded:arg];
+		
+		// only call layout if the view is attached
+		[self layoutChildOnMainThread:arg];
 	}
-	
-	[self unlockChildren];
-	
-	// only call layout if the view is attached
-	[self layoutChildOnMainThread:arg];
+	else
+	{
+		[childrenLock lock];
+		if (windowOpened)
+		{
+			[self performSelectorOnMainThread:@selector(add:) withObject:arg waitUntilDone:NO];
+			[childrenLock unlock];
+			return;
+		}
+		if (pendingAdds==nil)
+		{
+			pendingAdds = [[NSMutableArray arrayWithObject:arg] retain];
+		}
+		else 
+		{
+			[pendingAdds addObject:arg];
+		}
+		[childrenLock unlock];
+		[arg setParent:self];
+	}
 }
-
 
 -(void)remove:(id)arg
 {
 	ENSURE_SINGLE_ARG(arg,TiViewProxy);
+	ENSURE_UI_THREAD_1_ARG(arg);
 
-	[self lockChildrenForReading];
-		BOOL viewIsInChildren = [children containsObject:arg];
-	[self unlockChildren];
+	BOOL viewIsInChildren = [children containsObject:arg];
 
 	ENSURE_VALUE_CONSISTENCY(viewIsInChildren,YES);
 	ENSURE_UI_THREAD_1_ARG(arg);
 	[self childRemoved:arg];
 
-	[self lockChildrenForWriting];
-		[children removeObject:arg];
-		if ([children count]==0)
-		{
-			RELEASE_TO_NIL(children);
-		}
-	[self unlockChildren];
+	[children removeObject:arg];
+	if ([children count]==0)
+	{
+		RELEASE_TO_NIL(children);
+	}
 		
 	[arg setParent:nil];
 	
@@ -380,7 +353,7 @@
 		[view setParent:parent_];
 	}
 	
-	if ([parent windowOpened])
+	if (parent_!=nil && [parent windowOpened])
 	{
 		[self windowWillOpen];
 	}
@@ -421,6 +394,11 @@
 {
 	[view release];
 	view = [newView retain];
+	if (self.modelDelegate!=nil && [self.modelDelegate respondsToSelector:@selector(detachProxy)])
+	{
+		[self.modelDelegate detachProxy];
+		self.modelDelegate=nil;
+	}
 	self.modelDelegate = newView;
 }
 
@@ -436,49 +414,48 @@
 		[self viewWillDetach];
 		view.proxy = nil;
 		[view removeFromSuperview];
-		[self viewDidDetach];
+		if (self.modelDelegate!=nil && [self.modelDelegate respondsToSelector:@selector(detachProxy)])
+		{
+			[self.modelDelegate detachProxy];
+		}
 		self.modelDelegate = nil;
 		RELEASE_TO_NIL(view);
+		[self viewDidDetach];
+	}
+}
+
+-(void)addChildrenOnUIThread:(NSArray*)array
+{
+	ENSURE_UI_THREAD_1_ARG(array);
+	for (id child in array)
+	{
+		[self add:child];
 	}
 }
 
 -(void)windowWillOpen
 {
+	[childrenLock lock];
+	
 	// this method is called just before the top level window
 	// that this proxy is part of will open and is ready for
 	// the views to be attached
 	
 	if (windowOpened==YES)
 	{
+		[childrenLock unlock];
 		return;
 	}
 	
 	windowOpened = YES;
 	
-	// since we have pending adds that might have been added before
-	// we opened our window - we want to now transfer them from our
-	// pending array into our real children array
 	if (pendingAdds!=nil)
 	{
-		[self lockChildrenForWriting];
-		//Todo: Would it be safe to simply transfer ownership to children?
-		RELEASE_TO_NIL(children);
-		children = [pendingAdds mutableCopy];
+		[self addChildrenOnUIThread:pendingAdds];
 		RELEASE_TO_NIL(pendingAdds);
-		[self unlockChildren];
-		
-		// now we need to do the work that add would have normally done
-		// but in an optimized way
-		[self lockChildrenForReading];
-		for (TiViewProxy *proxy in children)
-		{
-			[proxy windowWillOpen];
-			[proxy setParent:self];
-			[self childAdded:proxy];
-		}
-		[self unlockChildren];
-		[self layoutChildren:NO];
 	}
+	
+	[childrenLock unlock];
 }
 
 -(void)windowDidOpen
@@ -487,26 +464,20 @@
 
 -(void)windowDidClose
 {
-	[self lockChildrenForReading];
+	for (TiViewProxy *child in children)
 	{
-		for (TiViewProxy *child in children)
-		{
-			[child windowDidClose];
-		}
+		[child windowDidClose];
 	}
-	[self unlockChildren];
 	[self detachView];
 	windowOpened=NO;
 }
 
 -(void)windowWillClose
 {
-	[self lockChildrenForReading];
-		for (TiViewProxy *child in children)
-		{
-			[child windowWillClose];
-		}
-	[self unlockChildren];
+	for (TiViewProxy *child in children)
+	{
+		[child windowWillClose];
+	}
 }
 
 -(void)viewWillAttach
@@ -611,13 +582,11 @@
 
 		[view configurationSet];
 
-		[self lockChildrenForReading];
-			for (id child in self.children)
-			{
-				TiUIView *childView = [(TiViewProxy*)child view];
-				[view addSubview:childView];
-			}
-		[self unlockChildren];
+		for (id child in self.children)
+		{
+			TiUIView *childView = [(TiViewProxy*)child view];
+			[view addSubview:childView];
+		}
 		[self viewDidAttach];
 
 		// make sure we do a layout of ourselves
@@ -741,33 +710,31 @@
 			int insertPosition = 0;
 			CGFloat zIndex = [childView zIndex];
 			
-			[self lockChildrenForReading];
-				int childProxyIndex = [children indexOfObject:child];
+			int childProxyIndex = [children indexOfObject:child];
 
-				for (TiUIView * thisView in [ourView subviews])
+			for (TiUIView * thisView in [ourView subviews])
+			{
+				if (![thisView isKindOfClass:[TiUIView class]])
 				{
-					if (![thisView isKindOfClass:[TiUIView class]])
-					{
-						insertPosition ++;
-						continue;
-					}
-					
-					CGFloat thisZIndex=[thisView zIndex];
-					if (zIndex < thisZIndex) //We've found our stop!
+					insertPosition ++;
+					continue;
+				}
+				
+				CGFloat thisZIndex=[thisView zIndex];
+				if (zIndex < thisZIndex) //We've found our stop!
+				{
+					break;
+				}
+				if (zIndex == thisZIndex)
+				{
+					TiProxy * thisProxy = [thisView proxy];
+					if (childProxyIndex <= [children indexOfObject:thisProxy])
 					{
 						break;
 					}
-					if (zIndex == thisZIndex)
-					{
-						TiProxy * thisProxy = [thisView proxy];
-						if (childProxyIndex <= [children indexOfObject:thisProxy])
-						{
-							break;
-						}
-					}
-					insertPosition ++;
 				}
-			[self unlockChildren];
+				insertPosition ++;
+			}
 			
 			[ourView insertSubview:childView atIndex:insertPosition];
 			[self childWillResize:child];
@@ -790,7 +757,6 @@
 	if (optimize==NO)
 	{
 		OSAtomicTestAndSetBarrier(NEEDS_LAYOUT_CHILDREN, &dirtyflags);
-		[self lockChildrenForReading];
 	}
 	for (id child in self.children)
 	{
@@ -799,7 +765,6 @@
 	if (optimize==NO)
 	{
 		OSAtomicTestAndClearBarrier(NEEDS_LAYOUT_CHILDREN, &dirtyflags);
-		[self unlockChildren];
 	}
 }
 
@@ -826,6 +791,12 @@
 
 -(void)_destroy
 {
+	if ([self destroyed])
+	{
+		// not safe to do multiple times given rwlock
+		return;
+	}
+	
 	// _destroy is called during a JS context shutdown, to inform the object to 
 	// release all its memory and references.  this will then cause dealloc 
 	// on objects that it contains (assuming we don't have circular references)
@@ -835,17 +806,17 @@
 	RELEASE_TO_NIL(barButtonItem);
 	if (view!=nil)
 	{
-		view.proxy = nil;
-		// must be on main thread
-		[view performSelectorOnMainThread:@selector(removeFromSuperview) withObject:nil waitUntilDone:NO];
-		[view performSelectorOnMainThread:@selector(release) withObject:nil waitUntilDone:NO];
-		view = nil;
+		if ([NSThread isMainThread])
+		{
+			[self detachView];
+		}
+		else
+		{
+			RELEASE_TO_NIL(view);
+		}
 	}
 	
-	[self lockChildrenForWriting];
-		[children removeAllObjects];
-		RELEASE_TO_NIL(children);
-	[self unlockChildren];
+	RELEASE_TO_NIL(children);
 	[super _destroy];
 }
 
@@ -857,10 +828,15 @@
 
 -(void)didReceiveMemoryWarning:(NSNotification*)notification
 {
-	// Only release a view if it's not currently attached and we're the only living reference for it
-	if (![self viewAttached] && [[self view] retainCount] == 1) {
-		RELEASE_TO_NIL(view);
+	// Only release a view if we're the only living reference for it
+	// WARNING: do not call [self view] here as that will create the
+	// view if it doesn't yet exist (thus defeating the purpose of
+	// this method)
+	if (view!=nil && [view retainCount]==1)
+	{
+		[self detachView];
 	}
+	[super didReceiveMemoryWarning:notification];
 }
 
 #pragma mark Listener Management
@@ -980,13 +956,7 @@
 	BOOL isHorizontal = TiLayoutRuleIsHorizontal(layoutProperties.layout);
 	CGFloat result = 0.0;
 	
-	NSArray* array = windowOpened ? children : pendingAdds;
-
-	if (windowOpened)
-	{
-		[self lockChildrenForReading];
-	}
-	for (TiViewProxy * thisChildProxy in array)
+	for (TiViewProxy * thisChildProxy in self.children)
 	{
 		CGFloat thisWidth = [thisChildProxy minimumParentWidthForWidth:suggestedWidth];
 		if (isHorizontal)
@@ -997,10 +967,6 @@
 		{
 			result = thisWidth;
 		}
-	}
-	if (windowOpened)
-	{
-		[self unlockChildren];
 	}
 	if (suggestedWidth == 0.0)
 	{
@@ -1021,10 +987,6 @@
 
 	NSArray* array = windowOpened ? children : pendingAdds;
 	
-	if (windowOpened)
-	{
-		[self lockChildrenForReading];
-	}
 	for (TiViewProxy * thisChildProxy in array)
 	{
 		if (isHorizontal)
@@ -1055,10 +1017,6 @@
 				result = thisHeight;
 			}
 		}
-	}
-	if (windowOpened)
-	{
-		[self unlockChildren];
 	}
 	return result + currentRowHeight;
 }
@@ -1134,9 +1092,7 @@
 {
 	IGNORE_IF_NOT_OPENED
 	
-	[self lockChildrenForReading];
 	BOOL containsChild = [children containsObject:child];
-	[self unlockChildren];
 
 	ENSURE_VALUE_CONSISTENCY(containsChild,YES);
 	[self setNeedsRepositionIfAutoSized];
@@ -1195,10 +1151,6 @@
 {
 	IGNORE_IF_NOT_OPENED
 	
-	if (![self viewAttached])
-	{
-		return;
-	}
 	BOOL alreadySet = OSAtomicTestAndSetBarrier(NEEDS_REPOSITION, &dirtyflags);
 	if (alreadySet || [parent willBeRelaying])
 	{
@@ -1206,7 +1158,7 @@
 	}
 
 	[parent childWillResize:self];
-	[TiLayoutQueue addViewProxy:self];
+	[TiLayoutQueue addViewProxy:self]; 
 }
 
 -(void)clearNeedsReposition
