@@ -2,3 +2,7 @@
 dist
 .sconsign.dblite
 .DS_Store
+.externalToolBuilders/
+.settings/
+bin/
+debug.log
