@@ -14,7 +14,12 @@
 #import "TiApp.h"
 #import "TiTabController.h"
 
-#define EXTERNAL_JS_WAIT_TIME 0.25
+// this is how long we should wait on the new JS context to be loaded
+// holding the UI thread before we return during an window open. we 
+// attempt to hold it for a small period of time to allow the window
+// to loaded before we return from the open such that the paint will be
+// much smoother on the new window during a tab transition
+#define EXTERNAL_JS_WAIT_TIME (150/1000)
 
 /** 
  * This class is a helper that will be used when we have an external
@@ -61,24 +66,31 @@
 	[lock lock];
 	completed = YES;
 	[lock signal];
-	[lock unlock];
 	if (timeout)
 	{
 		[window boot:YES];
 	}
+	[lock unlock];
 }
 
 -(BOOL)waitForBoot
 {
 	BOOL yn = NO;
 	[lock lock];
-	if ([lock waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:EXTERNAL_JS_WAIT_TIME]]==NO)
-	{
-		timeout = YES;
-	}
-	else 
+	if(completed)
 	{
 		yn = YES;
+	}
+	else
+	{
+		if ([lock waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:EXTERNAL_JS_WAIT_TIME]]==NO)
+		{
+			timeout = YES;
+		}
+		else 
+		{
+			yn = YES;
+		}
 	}
 	[lock unlock];
 	return yn;
@@ -168,7 +180,6 @@
 				{
 					return NO;
 				}
-
 			}
 		}
 		else 
@@ -322,8 +333,9 @@
     else {
         [self setValue:properties forKey:@"rightNavSettings"];
     }
-    
-	if (controller!=nil)
+	
+	if (controller!=nil && 
+		[controller navigationController] != nil)
 	{
 		ENSURE_TYPE_OR_NIL(proxy,TiViewProxy);
 		[self replaceValue:proxy forKey:@"rightNavButton" notification:NO];
@@ -369,7 +381,7 @@
         [self setValue:properties forKey:@"leftNavSettings"];
     }
     
-	if (controller!=nil)
+	if (controller!=nil && [controller navigationController] != nil)
 	{
 		ENSURE_TYPE_OR_NIL(proxy,TiViewProxy);
 		[self replaceValue:proxy forKey:@"leftNavButton" notification:NO];
@@ -381,6 +393,7 @@
 			{
 				[(TiViewProxy*)item removeBarButtonView];
 			}
+			controller.navigationItem.leftBarButtonItem = nil;			
 			if (proxy!=nil)
 			{
 				// add the new one
@@ -428,6 +441,11 @@
 -(void)_refreshBackButton
 {
 	ENSURE_UI_THREAD_0_ARGS;
+	
+	if (controller == nil || [controller navigationController] == nil) {
+		return; // No need to refresh
+	}
+	
 	NSArray * controllerArray = [[controller navigationController] viewControllers];
 	int controllerPosition = [controllerArray indexOfObject:controller];
 	if ((controllerPosition == 0) || (controllerPosition == NSNotFound))
@@ -485,6 +503,11 @@
 -(void)updateTitleView
 {
 	UIView * newTitleView = nil;
+	
+	if (controller == nil || [controller navigationController] == nil) {
+		return; // No need to update the title if not in a nav controller
+	}
+	
 	UINavigationItem * ourNavItem = [controller navigationItem];
 
 	TiViewProxy * titleControl = [self valueForKey:@"titleControl"];
@@ -545,7 +568,7 @@
 	ENSURE_UI_THREAD(setTitle,title_);
 	NSString *title = [TiUtils stringValue:title_];
 	[self replaceValue:title forKey:@"title" notification:NO];
-	if (controller!=nil)
+	if (controller!=nil && [controller navigationController] != nil)
 	{
 		controller.navigationItem.title = title;
 	}
@@ -556,7 +579,7 @@
 	ENSURE_UI_THREAD(setTitlePrompt,title_);
 	NSString *title = [TiUtils stringValue:title_];
 	[self replaceValue:title forKey:@"titlePrompt" notification:NO];
-	if (controller!=nil)
+	if (controller!=nil && [controller navigationController] != nil)
 	{
 		controller.navigationItem.prompt = title;
 	}
@@ -674,6 +697,13 @@ else{\
 
 -(void)setupWindowDecorations
 {
+	/*
+	if (opened) {
+		// Don't waste time redecorating after we open
+		return;
+	}
+	 */
+	
 	if (controller!=nil)
 	{
 		[[controller navigationController] setToolbarHidden:!hasToolbar animated:YES];
