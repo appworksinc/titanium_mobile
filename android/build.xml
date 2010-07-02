@@ -5,8 +5,10 @@
 	<property name="build.version" value="1.0.0"/>
 	
 	<property name="android.sdk" value="/opt/android-sdk"/>
-	<property name="android.platform" value="${android.sdk}/platforms/android-1.6"/>
-	<property name="google.apis" value="${android.sdk}/add-ons/google_apis-4_r02"/>
+	<property name="android.platform" value="${android.sdk}/platforms/android-2.1"/>
+	<property name="google.apis" value="${android.sdk}/add-ons/google_apis-7_r01"/>
+	<property name="android.api.legacy" value="true"/>
+
 	<available property="distdir-available" file="${distdir}"/>
 	
 	<path id="android">
@@ -72,6 +74,12 @@
 		<build-module name="xml"/>
 		<build-module name="yahoo"/>
 		
+		<build-module name="contacts" />
+		
+		<!--
+			<build-module name="contacts" excludedFiles="**/*/ContactAccesor.java" />
+		-->
+		
 		<build-module name="media">
 			<classpath path="${classesdir}/filesystem"/>
 		</build-module>
@@ -101,16 +109,18 @@
 	<macrodef name="build-module">
 		<attribute name="name"/>
 		<attribute name="prefix" default="modules/"/>
+		<attribute name="excludedFiles" default=""/>
 		<element name="extra-classpath" implicit="yes" optional="yes"/>
 		<sequential>
 			<mkdir dir="${classesdir}/@{name}"/>
 			<javac srcdir="@{prefix}@{name}/src"
 				destdir="${classesdir}/@{name}"
 				includes="**/*"
+				excludes="@{excludedFiles}"
 				source="1.5"
 				debug="true"
 				includeantruntime="false">
-
+				
 				<extra-classpath/>
 				<classpath refid="android"/>
 				<classpath refid="titanium"/>
