@@ -569,21 +569,21 @@ public class TiVideoView4 extends SurfaceView implements MediaPlayerControl {
         return 0;
     }
 
-	@Override
-	public boolean canPause() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean canSeekBackward() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean canSeekForward() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+//	@Override
+//	public boolean canPause() {
+//		// TODO Auto-generated method stub
+//		return false;
+//	}
+//
+//	@Override
+//	public boolean canSeekBackward() {
+//		// TODO Auto-generated method stub
+//		return false;
+//	}
+//
+//	@Override
+//	public boolean canSeekForward() {
+//		// TODO Auto-generated method stub
+//		return false;
+//	}
 }
