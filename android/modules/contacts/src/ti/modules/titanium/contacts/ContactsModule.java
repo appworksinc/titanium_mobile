@@ -48,8 +48,26 @@ public class ContactsModule extends TiModule
 	
 	public void showContacts() {
 		Log.d(LCAT, "Launching Contact intent");
-		mContactAccessor = ContactAccessorBase.getInstance();
-		this.launchIntent();
+		try {
+			mContactAccessor = ContactAccessorBase.getInstance();
+			if (null != mContactAccessor) {
+				this.launchIntent();			
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+	}
+	
+	public void getContacts() {
+		
+		Cursor contacts = mContactAccessor.getContacts(getActivity());
+		((ContactAccesor) mContactAccessor).displayContacts(contacts);
+		
+	}
+	
+	protected Activity getActivity() {
+		return this.getTiContext().getActivity();
 	}
 	
 	protected void launchIntent() {

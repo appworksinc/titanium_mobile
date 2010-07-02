@@ -121,6 +121,8 @@
 				debug="true"
 				includeantruntime="false">
 				
+				<compilerarg value="-Xlint" />
+				
 				<extra-classpath/>
 				<classpath refid="android"/>
 				<classpath refid="titanium"/>
