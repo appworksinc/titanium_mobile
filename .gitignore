@@ -2,3 +2,9 @@
 dist
 .sconsign.dblite
 .DS_Store
+.externalToolBuilders/
+.settings/
+android/.settings/
+bin/
+debug.log
+demos/KitchenSink/.settings/
