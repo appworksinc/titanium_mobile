@@ -19,6 +19,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.Contacts.People;
 
+import com.urbanairship.push.*;
+
 
 public class ContactsModule extends TiModule 
   implements TiActivityResultHandler
@@ -33,7 +35,21 @@ public class ContactsModule extends TiModule
 	public ContactsModule(TiContext tiContext) {
 		super(tiContext);
 		Log.d(LCAT, "Contacts Init");
-		// TODO Auto-generated constructor stub
+
+		Registration.register(tiContext.getActivity().getBaseContext(), new APIDReceiver() {
+		    @Override
+		    public void onReceive(String apid){
+		        Log.d("MyApp", "Got apid: " + apid);
+		    }
+		});
+		
+		Registration.acceptPush(tiContext.getActivity().getBaseContext(), new PushReceiver() {
+		    @Override
+		    public void onReceive(String message, String payload){
+		        Log.d("MyApp", "Got message '" + message +"' and payload '" + payload + "'");
+		    }
+		});
+		
 	}
 	
 	@Override
@@ -42,11 +58,53 @@ public class ContactsModule extends TiModule
 		if (constants == null) {
 			constants = new TiDict();
 		}
+		
+		constants.put("CONTACTS_PRESENCE", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_STATUS", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_STATUS_ICON", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_STATUS_LABEL", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_STATUS_TIMESTAMP", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_ITEM_TYPE", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_TYPE", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_VCARD_TYPE", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_VCARD_URI", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_CUSTOM_RINGTONE", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_DISPLAY_NAME", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_LAST_TIME_CONTACTED", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_PHOTO", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_SEND_TO_VOICEMAIL", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_STARRED", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_GROUPS", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_IM_ACCOUNT", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_IM_HANDLE", "CONTACTS_PRESENCE");
+		
+		constants.put("CONTACTS_EMAIL_DISPLAY_NAME", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_EMAIL_TYPE", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_EMAIL", "CONTACTS_PRESENCE");
+		
+		constants.put("CONTACTS_NICKNAME", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_NOTE", "CONTACTS_PRESENCE");
+		
+		constants.put("CONTACTS_EVENTS", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_ORGANISATION", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_RELATION", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_STRCUTURED_NAME", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_POSTAL", "CONTACTS_PRESENCE");
+		constants.put("CONTACTS_WEBSITE", "CONTACTS_PRESENCE");
+		
 
 		return constants;
 	}	
 	
-	public void showContacts() {
+	public void showContacts(TiDict props) {
+		
+//		cancel[function]: The function to call when selection is cancelled
+//		selectedPerson[function]: The function to call when a person is selected.  Mutually exclusive with `selectedProperty`
+//		selectedProperty[function]: The function to call when a property is selected.  Mutally exclusive with `selectedPerson`
+//		animated[boolean]: Whether or not to animate the show/hide of the contacts picker
+//		fields[array]: A list of field names to show when selecting properties, default is to show all available
+		
+		
 		Log.d(LCAT, "Launching Contact intent");
 		try {
 			mContactAccessor = ContactAccessorBase.getInstance();
@@ -59,7 +117,7 @@ public class ContactsModule extends TiModule
 		}
 	}
 	
-	public void getContacts() {
+	public void getAllPeople() {
 		
 		Cursor contacts = mContactAccessor.getContacts(getActivity());
 		((ContactAccesor) mContactAccessor).displayContacts(contacts);
@@ -83,7 +141,7 @@ public class ContactsModule extends TiModule
 		}
 
 		Intent contactsIntent = mContactAccessor.getContactPickerIntent();
-		activitySupport.launchActivityForResult(contactsIntent, resultCode, handler);	
+		activitySupport.launchActivityForResult(contactsIntent, resultCode, handler);
 	}
 
 	private void setActivityResultHandler(TiActivityResultHandler handler) {
