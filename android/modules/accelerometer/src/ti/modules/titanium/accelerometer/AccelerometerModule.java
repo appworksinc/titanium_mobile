@@ -22,7 +22,7 @@ import android.hardware.SensorManager;
 public class AccelerometerModule
 	extends TiModule
 {
-	private static final String LCAT = "TiAccelerometer";
+	private static final String LCAT = "AccelerometerModule";
 	private static final boolean DBG = TiConfig.LOGD;
 
 	public static final String EVENT_UPDATE = "update";

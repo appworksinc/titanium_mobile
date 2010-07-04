@@ -11,7 +11,12 @@ if (Titanium.Platform.name == 'iPhone OS')
 	data.push({title:'YQL', hasChild:true, test:'../examples/yql.js'});
 	data.push({title:'RSS', hasChild:true, test:'../examples/rss.js', barColor:'#b40000'});
 }
- 
+
+//add Android specific tests
+if (Titanium.Platform.name == 'android') {
+	data.push({title:'UrbanAirship', hasChild:true, test:'../examples/urbanAirship_notifications.js'});
+}
+
 data.push({title:'SOAP', hasChild:true, test:'../examples/soap.js'});
 
 // create table view

@@ -1,0 +1,48 @@
+- namespace
+
+Titanium.UrbanAirship
+
+- type
+
+module
+
+- description
+
+The top level UrbanAirship module.  The UrbanAirship module is used to connect to UrbanAirship to enable your application to register & receive push notifications"
+
+- since
+
+1.4.0
+
+- platforms
+
+android
+
+- methods
+
+registerForPushNotifications: register with UrbanAirship to enable this device to receive push notifications
+
+- method : registerForPushNotifications
+appKey[string]: The appKey issued by UrbanAirship
+debug[boolean]: optional flag to indicate debug mode or not
+success[function]: optional function to invoke on registration success
+callback[function]: optional function to invoke when receiving a push notification
+
+
+- properties
+
+
+- events
+
+success: 'success' is fired to indicate success when registering with UrbanAirship
+callback: 'callback' is fired when you receive a push notification
+
+- event: success
+deviceToken[string]: The token received for this device & app
+
+- event: callback
+data[object]: The data for this push notification.
+data.message[string]: The message
+data.payload[string]: The payload of the message
+
+
